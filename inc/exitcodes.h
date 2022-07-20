@@ -1,0 +1,13 @@
+#ifndef EXITCODES_H
+#define EXITCODES_H
+
+#define ESUCCESS 0
+#define EALLOCFAIL 1
+#define EFOPENFAIL 2
+#define EGLFWINITFAIL 3
+#define EGLFWWINDOWFAIL 4
+#define ELOADGLFAIL 5
+#define EGLSHADERERROR 6
+#define EGLERROR 7
+
+#endif

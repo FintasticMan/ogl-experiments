@@ -14,8 +14,10 @@ void tlog_init(uint8_t loglevel, FILE *dest) {
 }
 
 void tlog(uint8_t loglevel, const char *restrict fmt, ...) {
-    if (loglevel < ll) return;
-    char t[64] = {'\0'};
+    if (loglevel < ll) {
+        return;
+    }
+    char t[9] = {0};
     time_t cur = time(NULL);
     strftime(t, sizeof t, "%T", localtime(&cur));
     fprintf(fp, "[%" PRIu8 " %s] ", loglevel, t);
