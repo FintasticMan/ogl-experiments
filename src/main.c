@@ -1,3 +1,4 @@
+#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -6,8 +7,8 @@
 #include <glad/gl.h>
 
 #include <exitcodes.h>
-#include <shader.h>
 #include <logging.h>
+#include <shader.h>
 
 #define WIDTH 1920
 #define HEIGHT 1080
@@ -105,31 +106,66 @@ int main() {
         &shader_program
     );
 
-    GLfloat vertices[] = {
-        -0.5f, -0.5f,
-        0.5f, 0.5f,
-        -0.5f, 0.5f,
-        0.5f, -0.5f
-    };
+    FILE *fpt = fopen("track.csv", "r");
+    if (fpt == NULL) {
+        return EFOPENFAIL;
+    }
+
+    size_t size_inner = 0;
+    int c = 0;
+    int prev_c = 0;
+    while ((c = fgetc(fpt)) != EOF && !(c == '\n' && prev_c == '\n')) {
+        size_inner += !isdigit(c);
+        prev_c = c;
+    }
+    rewind(fpt);
+    tlog(0, "%zu\n", size_inner);
+
+    float *vertices = malloc(size_inner * sizeof (float));
+    GLuint *indices = malloc(size_inner * sizeof (GLuint));
+
+    for (size_t i = 0; i < size_inner; i++) {
+        fscanf(fpt, "%f", vertices + i);
+        vertices[i] = vertices[i] / ((i % 2) ? 720.f : 1280.f) * 2.f - 1.f;
+        if (i % 2) {
+            vertices[i] = -vertices[i];
+        }
+        indices[i] = (i == size_inner - 1) ? 0 : (i + 1) / 2;
+        tlog(0, "%f %d\n", (double) vertices[i], indices[i]);
+    }
 
     GLuint vao = 0;
-    GLuint vbo = 0;
     glGenVertexArrays(1, &vao);
-    glGenBuffers(1, &vbo);
     glBindVertexArray(vao);
+
+    GLuint vbo = 0;
+    glGenBuffers(1, &vbo);
+
+    GLuint ebo = 0;
+    glGenBuffers(1, &ebo);
+
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, sizeof vertices, vertices, GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof (GLfloat), (GLvoid *) 0);
+    glBufferData(GL_ARRAY_BUFFER, size_inner * sizeof (float), vertices, GL_STATIC_DRAW);
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, size_inner * sizeof (GLuint), indices, GL_STATIC_DRAW);
+
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof (float), (GLvoid *) 0);
     glEnableVertexAttribArray(0);
+
+    free(vertices);
+    free(indices);
+
+    glUseProgram(shader_program);
 
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
 
         glClear(GL_COLOR_BUFFER_BIT);
 
-        glUseProgram(shader_program);
-        glBindVertexArray(vao);
-        glDrawArrays(GL_LINES, 0, 2);
+        //glUseProgram(shader_program);
+        //glBindVertexArray(vao);
+        glDrawElements(GL_LINES, size_inner, GL_UNSIGNED_INT, 0);
 
         glfwSwapBuffers(window);
 

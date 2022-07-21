@@ -9,5 +9,6 @@
 #define ELOADGLFAIL 5
 #define EGLSHADERERROR 6
 #define EGLERROR 7
+#define EINVALIDPARAM 8
 
 #endif
