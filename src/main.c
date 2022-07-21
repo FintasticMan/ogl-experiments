@@ -112,19 +112,36 @@ int main() {
     }
 
     size_t size_inner = 0;
+    size_t size_outer = 0;
+    size_t size_checkpoints = 0;
     int c = 0;
     int prev_c = 0;
     while ((c = fgetc(fpt)) != EOF && !(c == '\n' && prev_c == '\n')) {
         size_inner += !isdigit(c);
         prev_c = c;
     }
+    prev_c = 0;
+    while ((c = fgetc(fpt)) != EOF && !(c == '\n' && prev_c == '\n')) {
+        size_outer += !isdigit(c);
+        prev_c = c;
+    }
+    prev_c = 0;
+    while ((c = fgetc(fpt)) != EOF && !(c == '\n' && prev_c == '\n')) {
+        size_checkpoints += !isdigit(c);
+        prev_c = c;
+    }
     rewind(fpt);
-    tlog(0, "%zu\n", size_inner);
 
-    float *vertices = malloc(size_inner * sizeof (float));
-    GLuint *indices = malloc(size_inner * sizeof (GLuint));
+    size_t size_vertices = size_inner + size_outer + size_checkpoints;
+    size_t size_indices = size_inner + size_outer + size_checkpoints / 2;
+    tlog(0, "%zu %zu\n", size_vertices, size_indices);
 
-    for (size_t i = 0; i < size_inner; i++) {
+    float *vertices = malloc(size_vertices * sizeof (float));
+    GLuint *indices = malloc(size_indices * sizeof (GLuint));
+
+    size_t i = 0;
+
+    for (; i < size_inner; i++) {
         fscanf(fpt, "%f", vertices + i);
         vertices[i] = vertices[i] / ((i % 2) ? 720.f : 1280.f) * 2.f - 1.f;
         if (i % 2) {
@@ -132,6 +149,24 @@ int main() {
         }
         indices[i] = (i == size_inner - 1) ? 0 : (i + 1) / 2;
         tlog(0, "%f %d\n", (double) vertices[i], indices[i]);
+    }
+    for (; i < size_inner + size_outer; i++) {
+        fscanf(fpt, "%f", vertices + i);
+        vertices[i] = vertices[i] / ((i % 2) ? 720.f : 1280.f) * 2.f - 1.f;
+        if (i % 2) {
+            vertices[i] = -vertices[i];
+        }
+        indices[i] = (i == size_inner + size_outer - 1) ? size_inner / 2 : (i + 1) / 2;
+        tlog(0, "%f %d\n", (double) vertices[i], indices[i]);
+    }
+    for (; i < size_inner + size_outer + size_checkpoints; i++) {
+        fscanf(fpt, "%f", vertices + i);
+        vertices[i] = vertices[i] / ((i % 2) ? 720.f : 1280.f) * 2.f - 1.f;
+        if (i % 2) {
+            vertices[i] = -vertices[i];
+        }
+        indices[(i - size_inner - size_outer) / 2 + size_inner + size_outer] = i / 2;
+        tlog(0, "%f %d\n", (double) vertices[i], indices[(i - size_inner - size_outer) / 2 + size_inner + size_outer]);
     }
 
     GLuint vao = 0;
@@ -145,10 +180,10 @@ int main() {
     glGenBuffers(1, &ebo);
 
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, size_inner * sizeof (float), vertices, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, size_vertices * sizeof (float), vertices, GL_STATIC_DRAW);
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, size_inner * sizeof (GLuint), indices, GL_STATIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, size_indices * sizeof (GLuint), indices, GL_STATIC_DRAW);
 
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof (float), (GLvoid *) 0);
     glEnableVertexAttribArray(0);
@@ -165,7 +200,7 @@ int main() {
 
         //glUseProgram(shader_program);
         //glBindVertexArray(vao);
-        glDrawElements(GL_LINES, size_inner, GL_UNSIGNED_INT, 0);
+        glDrawElements(GL_LINES, size_indices, GL_UNSIGNED_INT, 0);
 
         glfwSwapBuffers(window);
 
