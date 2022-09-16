@@ -53,7 +53,7 @@ clean:
 	$(RM) $(OBJDIR)/* $(DEPDIR)/* $(BIN)
 
 run: $(BIN)
-	@./$(BIN)
+	@./$(BIN) $(ARGS)
 
 debug: $(BIN)
 	@$(DEBUGGER) ./$(BIN)

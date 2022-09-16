@@ -1,4 +1,5 @@
 #include <ctype.h>
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -13,6 +14,16 @@
 #define WIDTH 1920
 #define HEIGHT 1080
 #define VSYNC GLFW_TRUE
+#define NUM_CARS 1
+#define PI 3.141592653589793f
+
+struct car {
+    float pos[2];
+    float rot;
+    float size[2];
+    float hyp;
+    float angles[4];
+};
 
 static void error_callback(int errorcode, const char *description) {
     tlog(5, "GLFW error: %d %s\n", errorcode, description);
@@ -54,8 +65,8 @@ static void framebuffer_size_callback(
 }
 #pragma GCC diagnostic pop
 
-int main() {
-    tlog_init(0, stderr);
+int main(int argc, char **argv) {
+    tlog_init(argc < 2 ? 0 : (uint8_t) strtoul(argv[1], NULL, 0), stderr);
 
     glfwSetErrorCallback(error_callback);
 
@@ -96,7 +107,7 @@ int main() {
 
     glClearColor(1.0f, 0.0f, 1.0f, 1.0f);
 
-    GLuint shader_program = 0;
+    GLuint shader_program;
     create_program(
         "src/shaders/main.vert",
         NULL,
@@ -114,69 +125,111 @@ int main() {
     size_t size_inner = 0;
     size_t size_outer = 0;
     size_t size_checkpoints = 0;
-    int c = 0;
+    int c;
     int prev_c = 0;
     while ((c = fgetc(fpt)) != EOF && !(c == '\n' && prev_c == '\n')) {
-        size_inner += !isdigit(c);
+        size_inner += !isdigit(c) && c != '.' && c != '-';
         prev_c = c;
     }
     prev_c = 0;
     while ((c = fgetc(fpt)) != EOF && !(c == '\n' && prev_c == '\n')) {
-        size_outer += !isdigit(c);
+        size_outer += !isdigit(c) && c != '.' && c != '-';
         prev_c = c;
     }
     prev_c = 0;
     while ((c = fgetc(fpt)) != EOF && !(c == '\n' && prev_c == '\n')) {
-        size_checkpoints += !isdigit(c);
+        size_checkpoints += !isdigit(c) && c != '.' && c != '-';
         prev_c = c;
     }
     rewind(fpt);
 
-    size_t size_vertices = size_inner + size_outer + size_checkpoints;
-    size_t size_indices = size_inner + size_outer + size_checkpoints / 2;
+    size_t size_vertices = size_inner + size_outer + size_checkpoints + NUM_CARS * 8;
+    size_t size_indices = size_inner + size_outer + size_checkpoints / 2 + NUM_CARS * 8;
     tlog(0, "%zu %zu\n", size_vertices, size_indices);
 
     float *vertices = malloc(size_vertices * sizeof (float));
+    float *vert_inner = vertices;
+    float *vert_outer = vert_inner + size_inner;
+    float *vert_check = vert_outer + size_outer;
+    float *vert_cars = vert_check + size_checkpoints;
+
     GLuint *indices = malloc(size_indices * sizeof (GLuint));
+    GLuint *ind_inner = indices;
+    GLuint *ind_outer = ind_inner + size_inner;
+    GLuint *ind_check = ind_outer + size_outer;
+    GLuint *ind_cars = ind_check + size_checkpoints / 2;
 
-    size_t i = 0;
+    float car_start[3];
 
-    for (; i < size_inner; i++) {
-        fscanf(fpt, "%f", vertices + i);
-        vertices[i] = vertices[i] / ((i % 2) ? 720.f : 1280.f) * 2.f - 1.f;
-        if (i % 2) {
-            vertices[i] = -vertices[i];
-        }
-        indices[i] = (i == size_inner - 1) ? 0 : (i + 1) / 2;
-        tlog(0, "%f %d\n", (double) vertices[i], indices[i]);
+    for (size_t i = 0; i < size_inner; i++) {
+        fscanf(fpt, "%f", vert_inner + i);
+        ind_inner[i] = (i == size_inner - 1) ? 0 : (i + 1) / 2;
+        tlog(0, "%f %u\n", (double) vert_inner[i], ind_inner[i]);
     }
-    for (; i < size_inner + size_outer; i++) {
-        fscanf(fpt, "%f", vertices + i);
-        vertices[i] = vertices[i] / ((i % 2) ? 720.f : 1280.f) * 2.f - 1.f;
-        if (i % 2) {
-            vertices[i] = -vertices[i];
-        }
-        indices[i] = (i == size_inner + size_outer - 1) ? size_inner / 2 : (i + 1) / 2;
-        tlog(0, "%f %d\n", (double) vertices[i], indices[i]);
+    for (size_t i = 0; i < size_outer; i++) {
+        fscanf(fpt, "%f", vert_outer + i);
+        ind_outer[i] = (i == size_outer - 1) ? size_inner / 2 : (i + size_inner + 1) / 2;
+        tlog(0, "%f %u\n", (double) vert_outer[i], ind_outer[i]);
     }
-    for (; i < size_inner + size_outer + size_checkpoints; i++) {
-        fscanf(fpt, "%f", vertices + i);
-        vertices[i] = vertices[i] / ((i % 2) ? 720.f : 1280.f) * 2.f - 1.f;
-        if (i % 2) {
-            vertices[i] = -vertices[i];
-        }
-        indices[(i - size_inner - size_outer) / 2 + size_inner + size_outer] = i / 2;
-        tlog(0, "%f %d\n", (double) vertices[i], indices[(i - size_inner - size_outer) / 2 + size_inner + size_outer]);
+    for (size_t i = 0; i < size_checkpoints; i++) {
+        fscanf(fpt, "%f", vert_check + i);
+        ind_check[i / 2] = (i + size_inner + size_outer) / 2;
+        tlog(0, "%f %u\n", (double) vert_check[i], ind_check[i / 2]);
+    }
+    fscanf(fpt, "%f\t%f\t%f", car_start, car_start + 1, car_start + 2);
+    tlog(0, "%f %f %f\n", (double) car_start[0], (double) car_start[1], (double) car_start[2]);
+
+    struct car cars[NUM_CARS];
+    for (size_t i = 0; i < NUM_CARS; i++) {
+        cars[i].pos[0] = car_start[0];
+        cars[i].pos[1] = car_start[1];
+	cars[i].rot = car_start[2];
+	cars[i].size[0] = 0.1f;
+	cars[i].size[1] = 0.08f;
+	cars[i].hyp = hypotf(cars[i].size[0], cars[i].size[1]) * 0.5f;
+	cars[i].angles[0] = atan2f(cars[i].size[1], cars[i].size[0]);
+	cars[i].angles[1] = atan2f(-cars[i].size[1], cars[i].size[0]);
+	cars[i].angles[2] = atan2f(-cars[i].size[1], -cars[i].size[0]);
+	cars[i].angles[3] = atan2f(cars[i].size[1], -cars[i].size[0]);
     }
 
-    GLuint vao = 0;
+    for (size_t i = 0; i < NUM_CARS; i++) {
+        ind_cars[i + 0] = (i + size_inner + size_outer + size_checkpoints) / 2 + 0;
+        ind_cars[i + 1] = (i + size_inner + size_outer + size_checkpoints) / 2 + 1;
+        ind_cars[i + 2] = (i + size_inner + size_outer + size_checkpoints) / 2 + 1;
+        ind_cars[i + 3] = (i + size_inner + size_outer + size_checkpoints) / 2 + 2;
+        ind_cars[i + 4] = (i + size_inner + size_outer + size_checkpoints) / 2 + 2;
+        ind_cars[i + 5] = (i + size_inner + size_outer + size_checkpoints) / 2 + 3;
+        ind_cars[i + 6] = (i + size_inner + size_outer + size_checkpoints) / 2 + 3;
+        ind_cars[i + 7] = (i + size_inner + size_outer + size_checkpoints) / 2 + 0;
+
+        vert_cars[i + 0] = cars[i].pos[0] + cars[i].hyp * sinf(cars[i].angles[0] + cars[i].rot);
+        vert_cars[i + 1] = cars[i].pos[1] + cars[i].hyp * cosf(cars[i].angles[0] + cars[i].rot);
+        vert_cars[i + 2] = cars[i].pos[0] + cars[i].hyp * sinf(cars[i].angles[1] + cars[i].rot);
+        vert_cars[i + 3] = cars[i].pos[1] + cars[i].hyp * cosf(cars[i].angles[1] + cars[i].rot);
+        vert_cars[i + 4] = cars[i].pos[0] + cars[i].hyp * sinf(cars[i].angles[2] + cars[i].rot);
+        vert_cars[i + 5] = cars[i].pos[1] + cars[i].hyp * cosf(cars[i].angles[2] + cars[i].rot);
+        vert_cars[i + 6] = cars[i].pos[0] + cars[i].hyp * sinf(cars[i].angles[3] + cars[i].rot);
+        vert_cars[i + 7] = cars[i].pos[1] + cars[i].hyp * cosf(cars[i].angles[3] + cars[i].rot);
+
+        tlog(0, "%f %u\n", (double) vert_cars[i + 0], ind_cars[i + 0]);
+        tlog(0, "%f %u\n", (double) vert_cars[i + 1], ind_cars[i + 1]);
+        tlog(0, "%f %u\n", (double) vert_cars[i + 2], ind_cars[i + 2]);
+        tlog(0, "%f %u\n", (double) vert_cars[i + 3], ind_cars[i + 3]);
+        tlog(0, "%f %u\n", (double) vert_cars[i + 4], ind_cars[i + 4]);
+        tlog(0, "%f %u\n", (double) vert_cars[i + 5], ind_cars[i + 5]);
+        tlog(0, "%f %u\n", (double) vert_cars[i + 6], ind_cars[i + 6]);
+        tlog(0, "%f %u\n", (double) vert_cars[i + 7], ind_cars[i + 7]);
+    }
+
+    GLuint vao;
     glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);
 
-    GLuint vbo = 0;
+    GLuint vbo;
     glGenBuffers(1, &vbo);
 
-    GLuint ebo = 0;
+    GLuint ebo;
     glGenBuffers(1, &ebo);
 
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
