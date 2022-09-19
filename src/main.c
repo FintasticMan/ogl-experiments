@@ -13,7 +13,7 @@
 
 #define WIDTH 1024
 #define HEIGHT 1024
-#define VSYNC GLFW_FALSE
+#define VSYNC GLFW_TRUE
 #define NUM_CARS 1
 #define PI 3.141592653589793f
 
@@ -195,23 +195,23 @@ int main(int argc, char **argv) {
     }
 
     for (size_t i = 0; i < NUM_CARS; i++) {
-        ind_cars[i + 0] = i / 2 + 0;
-        ind_cars[i + 1] = i / 2 + 1;
-        ind_cars[i + 2] = i / 2 + 1;
-        ind_cars[i + 3] = i / 2 + 2;
-        ind_cars[i + 4] = i / 2 + 2;
-        ind_cars[i + 5] = i / 2 + 3;
-        ind_cars[i + 6] = i / 2 + 3;
-        ind_cars[i + 7] = i / 2 + 0;
+        ind_cars[i + 0] = i * 4 + 0;
+        ind_cars[i + 1] = i * 4 + 1;
+        ind_cars[i + 2] = i * 4 + 1;
+        ind_cars[i + 3] = i * 4 + 2;
+        ind_cars[i + 4] = i * 4 + 2;
+        ind_cars[i + 5] = i * 4 + 3;
+        ind_cars[i + 6] = i * 4 + 3;
+        ind_cars[i + 7] = i * 4 + 0;
 
-        vert_cars[i + 0] = cars[i].pos[0] + cars[i].hyp * cosf(cars[i].angles[0] + cars[i].rot);
-        vert_cars[i + 1] = cars[i].pos[1] + cars[i].hyp * sinf(cars[i].angles[0] + cars[i].rot);
-        vert_cars[i + 2] = cars[i].pos[0] + cars[i].hyp * cosf(cars[i].angles[1] + cars[i].rot);
-        vert_cars[i + 3] = cars[i].pos[1] + cars[i].hyp * sinf(cars[i].angles[1] + cars[i].rot);
-        vert_cars[i + 4] = cars[i].pos[0] + cars[i].hyp * cosf(cars[i].angles[2] + cars[i].rot);
-        vert_cars[i + 5] = cars[i].pos[1] + cars[i].hyp * sinf(cars[i].angles[2] + cars[i].rot);
-        vert_cars[i + 6] = cars[i].pos[0] + cars[i].hyp * cosf(cars[i].angles[3] + cars[i].rot);
-        vert_cars[i + 7] = cars[i].pos[1] + cars[i].hyp * sinf(cars[i].angles[3] + cars[i].rot);
+        tlog(0, "%u\n", ind_cars[i + 0]);
+        tlog(0, "%u\n", ind_cars[i + 1]);
+        tlog(0, "%u\n", ind_cars[i + 2]);
+        tlog(0, "%u\n", ind_cars[i + 3]);
+        tlog(0, "%u\n", ind_cars[i + 4]);
+        tlog(0, "%u\n", ind_cars[i + 5]);
+        tlog(0, "%u\n", ind_cars[i + 6]);
+        tlog(0, "%u\n", ind_cars[i + 7]);
     }
 
     GLuint vaos[2];
@@ -239,6 +239,7 @@ int main(int argc, char **argv) {
     double begin_time = 0.0;
     double end_time = 0.0;
     float dt;
+    unsigned long long frame = 0;
 
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
@@ -262,10 +263,22 @@ int main(int argc, char **argv) {
             vert_cars[i + 5] = cars[i].pos[1] + cars[i].hyp * sinf(cars[i].angles[2] + cars[i].rot);
             vert_cars[i + 6] = cars[i].pos[0] + cars[i].hyp * cosf(cars[i].angles[3] + cars[i].rot);
             vert_cars[i + 7] = cars[i].pos[1] + cars[i].hyp * sinf(cars[i].angles[3] + cars[i].rot);
+
+            if (!frame) {
+                    tlog(0, "%f\n", (double) vert_cars[i + 0]);
+                    tlog(0, "%f\n", (double) vert_cars[i + 1]);
+                    tlog(0, "%f\n", (double) vert_cars[i + 2]);
+                    tlog(0, "%f\n", (double) vert_cars[i + 3]);
+                    tlog(0, "%f\n", (double) vert_cars[i + 4]);
+                    tlog(0, "%f\n", (double) vert_cars[i + 5]);
+                    tlog(0, "%f\n", (double) vert_cars[i + 6]);
+                    tlog(0, "%f\n", (double) vert_cars[i + 7]);
+            }
         }
 
         glBindVertexArray(vaos[0]);
         glDrawElements(GL_LINES, size_indices, GL_UNSIGNED_INT, 0);
+
         glBindVertexArray(vaos[1]);
         glBindBuffer(GL_ARRAY_BUFFER, vbos[1]);
         glBufferData(GL_ARRAY_BUFFER, sizeof(vert_cars), vert_cars, GL_DYNAMIC_DRAW);
@@ -287,6 +300,7 @@ int main(int argc, char **argv) {
         }
 
         end_time = glfwGetTime();
+        frame++;
     }
 
     glfwDestroyWindow(window);
