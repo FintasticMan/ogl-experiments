@@ -13,7 +13,7 @@
 
 #define WIDTH 1024
 #define HEIGHT 1024
-#define VSYNC GLFW_TRUE
+#define VSYNC GLFW_FALSE
 #define NUM_CARS 1
 #define PI 3.141592653589793f
 
@@ -195,23 +195,23 @@ int main(int argc, char **argv) {
     }
 
     for (size_t i = 0; i < NUM_CARS; i++) {
-        ind_cars[i + 0] = i * 4 + 0;
-        ind_cars[i + 1] = i * 4 + 1;
-        ind_cars[i + 2] = i * 4 + 1;
-        ind_cars[i + 3] = i * 4 + 2;
-        ind_cars[i + 4] = i * 4 + 2;
-        ind_cars[i + 5] = i * 4 + 3;
-        ind_cars[i + 6] = i * 4 + 3;
-        ind_cars[i + 7] = i * 4 + 0;
+        ind_cars[i * 8 + 0] = i * 4 + 0;
+        ind_cars[i * 8 + 1] = i * 4 + 1;
+        ind_cars[i * 8 + 2] = i * 4 + 1;
+        ind_cars[i * 8 + 3] = i * 4 + 2;
+        ind_cars[i * 8 + 4] = i * 4 + 2;
+        ind_cars[i * 8 + 5] = i * 4 + 3;
+        ind_cars[i * 8 + 6] = i * 4 + 3;
+        ind_cars[i * 8 + 7] = i * 4 + 0;
 
-        tlog(0, "%u\n", ind_cars[i + 0]);
-        tlog(0, "%u\n", ind_cars[i + 1]);
-        tlog(0, "%u\n", ind_cars[i + 2]);
-        tlog(0, "%u\n", ind_cars[i + 3]);
-        tlog(0, "%u\n", ind_cars[i + 4]);
-        tlog(0, "%u\n", ind_cars[i + 5]);
-        tlog(0, "%u\n", ind_cars[i + 6]);
-        tlog(0, "%u\n", ind_cars[i + 7]);
+        tlog(0, "%u\n", ind_cars[i * 8 + 0]);
+        tlog(0, "%u\n", ind_cars[i * 8 + 1]);
+        tlog(0, "%u\n", ind_cars[i * 8 + 2]);
+        tlog(0, "%u\n", ind_cars[i * 8 + 3]);
+        tlog(0, "%u\n", ind_cars[i * 8 + 4]);
+        tlog(0, "%u\n", ind_cars[i * 8 + 5]);
+        tlog(0, "%u\n", ind_cars[i * 8 + 6]);
+        tlog(0, "%u\n", ind_cars[i * 8 + 7]);
     }
 
     GLuint vaos[2];
@@ -234,6 +234,12 @@ int main(int argc, char **argv) {
     free(vertices);
     free(indices);
 
+    glBindVertexArray(vaos[1]);
+    glBindBuffer(GL_ARRAY_BUFFER, vbos[1]);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebos[1]);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof (float), (GLvoid *) 0);
+    glEnableVertexAttribArray(0);
+
     glUseProgram(shader_program);
 
     double begin_time = 0.0;
@@ -255,24 +261,24 @@ int main(int argc, char **argv) {
                 cars[i].pos[1] += sinf(cars[i].rot) * dt * 0.35f;
             }
 
-            vert_cars[i + 0] = cars[i].pos[0] + cars[i].hyp * cosf(cars[i].angles[0] + cars[i].rot);
-            vert_cars[i + 1] = cars[i].pos[1] + cars[i].hyp * sinf(cars[i].angles[0] + cars[i].rot);
-            vert_cars[i + 2] = cars[i].pos[0] + cars[i].hyp * cosf(cars[i].angles[1] + cars[i].rot);
-            vert_cars[i + 3] = cars[i].pos[1] + cars[i].hyp * sinf(cars[i].angles[1] + cars[i].rot);
-            vert_cars[i + 4] = cars[i].pos[0] + cars[i].hyp * cosf(cars[i].angles[2] + cars[i].rot);
-            vert_cars[i + 5] = cars[i].pos[1] + cars[i].hyp * sinf(cars[i].angles[2] + cars[i].rot);
-            vert_cars[i + 6] = cars[i].pos[0] + cars[i].hyp * cosf(cars[i].angles[3] + cars[i].rot);
-            vert_cars[i + 7] = cars[i].pos[1] + cars[i].hyp * sinf(cars[i].angles[3] + cars[i].rot);
+            vert_cars[i * 8 + 0] = cars[i].pos[0] + cars[i].hyp * cosf(cars[i].angles[0] + cars[i].rot);
+            vert_cars[i * 8 + 1] = cars[i].pos[1] + cars[i].hyp * sinf(cars[i].angles[0] + cars[i].rot);
+            vert_cars[i * 8 + 2] = cars[i].pos[0] + cars[i].hyp * cosf(cars[i].angles[1] + cars[i].rot);
+            vert_cars[i * 8 + 3] = cars[i].pos[1] + cars[i].hyp * sinf(cars[i].angles[1] + cars[i].rot);
+            vert_cars[i * 8 + 4] = cars[i].pos[0] + cars[i].hyp * cosf(cars[i].angles[2] + cars[i].rot);
+            vert_cars[i * 8 + 5] = cars[i].pos[1] + cars[i].hyp * sinf(cars[i].angles[2] + cars[i].rot);
+            vert_cars[i * 8 + 6] = cars[i].pos[0] + cars[i].hyp * cosf(cars[i].angles[3] + cars[i].rot);
+            vert_cars[i * 8 + 7] = cars[i].pos[1] + cars[i].hyp * sinf(cars[i].angles[3] + cars[i].rot);
 
             if (!frame) {
-                    tlog(0, "%f\n", (double) vert_cars[i + 0]);
-                    tlog(0, "%f\n", (double) vert_cars[i + 1]);
-                    tlog(0, "%f\n", (double) vert_cars[i + 2]);
-                    tlog(0, "%f\n", (double) vert_cars[i + 3]);
-                    tlog(0, "%f\n", (double) vert_cars[i + 4]);
-                    tlog(0, "%f\n", (double) vert_cars[i + 5]);
-                    tlog(0, "%f\n", (double) vert_cars[i + 6]);
-                    tlog(0, "%f\n", (double) vert_cars[i + 7]);
+                tlog(0, "%f\n", (double) vert_cars[i * 8 + 0]);
+                tlog(0, "%f\n", (double) vert_cars[i * 8 + 1]);
+                tlog(0, "%f\n", (double) vert_cars[i * 8 + 2]);
+                tlog(0, "%f\n", (double) vert_cars[i * 8 + 3]);
+                tlog(0, "%f\n", (double) vert_cars[i * 8 + 4]);
+                tlog(0, "%f\n", (double) vert_cars[i * 8 + 5]);
+                tlog(0, "%f\n", (double) vert_cars[i * 8 + 6]);
+                tlog(0, "%f\n", (double) vert_cars[i * 8 + 7]);
             }
         }
 
@@ -280,14 +286,8 @@ int main(int argc, char **argv) {
         glDrawElements(GL_LINES, size_indices, GL_UNSIGNED_INT, 0);
 
         glBindVertexArray(vaos[1]);
-        glBindBuffer(GL_ARRAY_BUFFER, vbos[1]);
         glBufferData(GL_ARRAY_BUFFER, sizeof(vert_cars), vert_cars, GL_DYNAMIC_DRAW);
-
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebos[1]);
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(ind_cars), ind_cars, GL_DYNAMIC_DRAW);
-
-        glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof (float), (GLvoid *) 0);
-        glEnableVertexAttribArray(0);
         glDrawElements(GL_LINES, sizeof(ind_cars) / sizeof (GLuint), GL_UNSIGNED_INT, 0);
 
         glfwSwapBuffers(window);
