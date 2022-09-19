@@ -7,6 +7,7 @@
 #include <GLFW/glfw3.h>
 #include <glad/gl.h>
 
+#include <car.h>
 #include <exitcodes.h>
 #include <logging.h>
 #include <shader.h>
@@ -16,14 +17,6 @@
 #define VSYNC GLFW_FALSE
 #define NUM_CARS 1
 #define PI 3.141592653589793f
-
-struct car {
-    float pos[2];
-    float rot;
-    float size[2];
-    float hyp;
-    float angles[4];
-};
 
 static void error_callback(int errorcode, const char *description) {
     tlog(5, "GLFW error: %d %s\n", errorcode, description);
@@ -144,85 +137,52 @@ int main(int argc, char **argv) {
     }
     rewind(fpt);
 
-    size_t size_vertices = size_inner + size_outer + size_checkpoints;
-    size_t size_indices = size_inner + size_outer + size_checkpoints / 2;
+    size_t size_vertices = (size_inner + size_outer) * 2 + size_checkpoints;
 
     float *vertices = malloc(size_vertices * sizeof (float));
     float *vert_inner = vertices;
-    float *vert_outer = vert_inner + size_inner;
-    float *vert_check = vert_outer + size_outer;
-    float vert_cars[NUM_CARS * 8];
-
-    GLuint *indices = malloc(size_indices * sizeof (GLuint));
-    GLuint *ind_inner = indices;
-    GLuint *ind_outer = ind_inner + size_inner;
-    GLuint *ind_check = ind_outer + size_outer;
-    GLuint ind_cars[NUM_CARS * 8];
-
-    float car_start[3];
+    float *vert_outer = vert_inner + size_inner * 2;
+    float *vert_check = vert_outer + size_outer * 2;
+    float vert_cars[NUM_CARS * 16];
 
     for (size_t i = 0; i < size_inner; i++) {
-        fscanf(fpt, "%f", vert_inner + i);
-        ind_inner[i] = (i == size_inner - 1) ? 0 : (i + 1) / 2;
+        fscanf(fpt, "%f", vert_inner + i / 2 * 4 + i % 2);
+    }
+    for (size_t i = 0; i < size_inner; i++) {
+        vert_inner[i / 2 * 4 + i % 2 + 2] = vert_inner[(i / 2 * 4 + i % 2 + 4) % (size_inner * 2)];
     }
     for (size_t i = 0; i < size_outer; i++) {
-        fscanf(fpt, "%f", vert_outer + i);
-        ind_outer[i] = (i == size_outer - 1) ? size_inner / 2 : (i + size_inner + 1) / 2;
+        fscanf(fpt, "%f", vert_outer + i / 2 * 4 + i % 2);
+    }
+    for (size_t i = 0; i < size_outer; i++) {
+        vert_outer[i / 2 * 4 + i % 2 + 2] = vert_outer[(i / 2 * 4 + i % 2 + 4) % (size_outer * 2)];
     }
     for (size_t i = 0; i < size_checkpoints; i++) {
         fscanf(fpt, "%f", vert_check + i);
-        ind_check[i / 2] = (i + size_inner + size_outer) / 2;
     }
+
+    float car_start[3];
     fscanf(fpt, "%f\t%f\t%f", car_start, car_start + 1, car_start + 2);
 
     struct car cars[NUM_CARS];
     for (size_t i = 0; i < NUM_CARS; i++) {
-        cars[i].pos[0] = car_start[0];
-        cars[i].pos[1] = car_start[1];
-        cars[i].rot = car_start[2];
-        cars[i].size[0] = 0.05f;
-        cars[i].size[1] = 0.025f;
-        cars[i].hyp = hypotf(cars[i].size[0], cars[i].size[1]) * 0.5f;
-        cars[i].angles[0] = atan2f(cars[i].size[1], cars[i].size[0]);
-        cars[i].angles[1] = atan2f(-cars[i].size[1], cars[i].size[0]);
-        cars[i].angles[2] = atan2f(-cars[i].size[1], -cars[i].size[0]);
-        cars[i].angles[3] = atan2f(cars[i].size[1], -cars[i].size[0]);
-    }
-
-    for (size_t i = 0; i < NUM_CARS; i++) {
-        ind_cars[i * 8 + 0] = i * 4 + 0;
-        ind_cars[i * 8 + 1] = i * 4 + 1;
-        ind_cars[i * 8 + 2] = i * 4 + 1;
-        ind_cars[i * 8 + 3] = i * 4 + 2;
-        ind_cars[i * 8 + 4] = i * 4 + 2;
-        ind_cars[i * 8 + 5] = i * 4 + 3;
-        ind_cars[i * 8 + 6] = i * 4 + 3;
-        ind_cars[i * 8 + 7] = i * 4 + 0;
+        car_init(cars + i, car_start);
     }
 
     GLuint vaos[2];
     glGenVertexArrays(2, vaos);
     GLuint vbos[2];
     glGenBuffers(2, vbos);
-    GLuint ebos[2];
-    glGenBuffers(2, ebos);
 
     glBindVertexArray(vaos[0]);
     glBindBuffer(GL_ARRAY_BUFFER, vbos[0]);
     glBufferData(GL_ARRAY_BUFFER, size_vertices * sizeof (float), vertices, GL_STATIC_DRAW);
 
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebos[0]);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, size_indices * sizeof (GLuint), indices, GL_STATIC_DRAW);
-
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof (float), (GLvoid *) 0);
     glEnableVertexAttribArray(0);
 
-    free(vertices);
-    free(indices);
-
     glBindVertexArray(vaos[1]);
     glBindBuffer(GL_ARRAY_BUFFER, vbos[1]);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebos[1]);
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof (float), (GLvoid *) 0);
     glEnableVertexAttribArray(0);
 
@@ -247,23 +207,28 @@ int main(int argc, char **argv) {
                 cars[i].pos[1] += sinf(cars[i].rot) * (float) dt * 0.35f;
             }
 
-            vert_cars[i * 8 + 0] = cars[i].pos[0] + cars[i].hyp * cosf(cars[i].angles[0] + cars[i].rot);
-            vert_cars[i * 8 + 1] = cars[i].pos[1] + cars[i].hyp * sinf(cars[i].angles[0] + cars[i].rot);
-            vert_cars[i * 8 + 2] = cars[i].pos[0] + cars[i].hyp * cosf(cars[i].angles[1] + cars[i].rot);
-            vert_cars[i * 8 + 3] = cars[i].pos[1] + cars[i].hyp * sinf(cars[i].angles[1] + cars[i].rot);
-            vert_cars[i * 8 + 4] = cars[i].pos[0] + cars[i].hyp * cosf(cars[i].angles[2] + cars[i].rot);
-            vert_cars[i * 8 + 5] = cars[i].pos[1] + cars[i].hyp * sinf(cars[i].angles[2] + cars[i].rot);
-            vert_cars[i * 8 + 6] = cars[i].pos[0] + cars[i].hyp * cosf(cars[i].angles[3] + cars[i].rot);
-            vert_cars[i * 8 + 7] = cars[i].pos[1] + cars[i].hyp * sinf(cars[i].angles[3] + cars[i].rot);
+            car_update_vertices(cars + i);
+
+            for (size_t j = 0; j < 16; j++) {
+                vert_cars[i * 16 + j] = cars[i].vertices[j];
+            }
+
+            if (car_is_colliding(cars + i, vertices, (size_inner + size_outer) * 2)) {
+                //tlog(1, "car %zu is colliding with the track\n", i);
+            }
+
+            car_update_checkpoints(cars + i, vert_check, size_checkpoints);
+            if (frame % 1024 == 0) {
+                tlog(0, "checkpoints %zu\n", cars[i].checkpoints);
+            }
         }
 
         glBindVertexArray(vaos[0]);
-        glDrawElements(GL_LINES, size_indices, GL_UNSIGNED_INT, 0);
+        glDrawArrays(GL_LINES, 0, size_vertices);
 
         glBindVertexArray(vaos[1]);
         glBufferData(GL_ARRAY_BUFFER, sizeof(vert_cars), vert_cars, GL_DYNAMIC_DRAW);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(ind_cars), ind_cars, GL_DYNAMIC_DRAW);
-        glDrawElements(GL_LINES, sizeof(ind_cars) / sizeof (GLuint), GL_UNSIGNED_INT, 0);
+        glDrawArrays(GL_LINES, 0, sizeof(vert_cars) / sizeof (float));
 
         glfwSwapBuffers(window);
 
@@ -285,6 +250,7 @@ int main(int argc, char **argv) {
         frame++;
     }
 
+    free(vertices);
     glfwDestroyWindow(window);
     glfwTerminate();
 
