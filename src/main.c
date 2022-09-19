@@ -146,7 +146,6 @@ int main(int argc, char **argv) {
 
     size_t size_vertices = size_inner + size_outer + size_checkpoints;
     size_t size_indices = size_inner + size_outer + size_checkpoints / 2;
-    tlog(0, "%zu %zu\n", size_vertices, size_indices);
 
     float *vertices = malloc(size_vertices * sizeof (float));
     float *vert_inner = vertices;
@@ -165,28 +164,24 @@ int main(int argc, char **argv) {
     for (size_t i = 0; i < size_inner; i++) {
         fscanf(fpt, "%f", vert_inner + i);
         ind_inner[i] = (i == size_inner - 1) ? 0 : (i + 1) / 2;
-        tlog(0, "%f %u\n", (double) vert_inner[i], ind_inner[i]);
     }
     for (size_t i = 0; i < size_outer; i++) {
         fscanf(fpt, "%f", vert_outer + i);
         ind_outer[i] = (i == size_outer - 1) ? size_inner / 2 : (i + size_inner + 1) / 2;
-        tlog(0, "%f %u\n", (double) vert_outer[i], ind_outer[i]);
     }
     for (size_t i = 0; i < size_checkpoints; i++) {
         fscanf(fpt, "%f", vert_check + i);
         ind_check[i / 2] = (i + size_inner + size_outer) / 2;
-        tlog(0, "%f %u\n", (double) vert_check[i], ind_check[i / 2]);
     }
     fscanf(fpt, "%f\t%f\t%f", car_start, car_start + 1, car_start + 2);
-    tlog(0, "%f %f %f\n", (double) car_start[0], (double) car_start[1], (double) car_start[2]);
 
     struct car cars[NUM_CARS];
     for (size_t i = 0; i < NUM_CARS; i++) {
         cars[i].pos[0] = car_start[0];
         cars[i].pos[1] = car_start[1];
         cars[i].rot = car_start[2];
-        cars[i].size[0] = 0.1f;
-        cars[i].size[1] = 0.05f;
+        cars[i].size[0] = 0.05f;
+        cars[i].size[1] = 0.025f;
         cars[i].hyp = hypotf(cars[i].size[0], cars[i].size[1]) * 0.5f;
         cars[i].angles[0] = atan2f(cars[i].size[1], cars[i].size[0]);
         cars[i].angles[1] = atan2f(-cars[i].size[1], cars[i].size[0]);
@@ -203,15 +198,6 @@ int main(int argc, char **argv) {
         ind_cars[i * 8 + 5] = i * 4 + 3;
         ind_cars[i * 8 + 6] = i * 4 + 3;
         ind_cars[i * 8 + 7] = i * 4 + 0;
-
-        tlog(0, "%u\n", ind_cars[i * 8 + 0]);
-        tlog(0, "%u\n", ind_cars[i * 8 + 1]);
-        tlog(0, "%u\n", ind_cars[i * 8 + 2]);
-        tlog(0, "%u\n", ind_cars[i * 8 + 3]);
-        tlog(0, "%u\n", ind_cars[i * 8 + 4]);
-        tlog(0, "%u\n", ind_cars[i * 8 + 5]);
-        tlog(0, "%u\n", ind_cars[i * 8 + 6]);
-        tlog(0, "%u\n", ind_cars[i * 8 + 7]);
     }
 
     GLuint vaos[2];
@@ -244,21 +230,21 @@ int main(int argc, char **argv) {
 
     double begin_time = 0.0;
     double end_time = 0.0;
-    float dt;
+    double dt;
     unsigned long long frame = 0;
 
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
-        dt = (float) (end_time - begin_time);
+        dt = end_time - begin_time;
         begin_time = glfwGetTime();
 
         glClear(GL_COLOR_BUFFER_BIT);
 
         for (size_t i = 0; i < NUM_CARS; i++) {
-            cars[i].rot += (float) (glfwGetKey(window, GLFW_KEY_A) - glfwGetKey(window, GLFW_KEY_D)) * dt * 2.5f;
+            cars[i].rot += (float) (glfwGetKey(window, GLFW_KEY_A) - glfwGetKey(window, GLFW_KEY_D)) * (float) dt * 5.0f;
             if (glfwGetKey(window, GLFW_KEY_W)) {
-                cars[i].pos[0] += cosf(cars[i].rot) * dt * 0.35f;
-                cars[i].pos[1] += sinf(cars[i].rot) * dt * 0.35f;
+                cars[i].pos[0] += cosf(cars[i].rot) * (float) dt * 0.35f;
+                cars[i].pos[1] += sinf(cars[i].rot) * (float) dt * 0.35f;
             }
 
             vert_cars[i * 8 + 0] = cars[i].pos[0] + cars[i].hyp * cosf(cars[i].angles[0] + cars[i].rot);
@@ -269,17 +255,6 @@ int main(int argc, char **argv) {
             vert_cars[i * 8 + 5] = cars[i].pos[1] + cars[i].hyp * sinf(cars[i].angles[2] + cars[i].rot);
             vert_cars[i * 8 + 6] = cars[i].pos[0] + cars[i].hyp * cosf(cars[i].angles[3] + cars[i].rot);
             vert_cars[i * 8 + 7] = cars[i].pos[1] + cars[i].hyp * sinf(cars[i].angles[3] + cars[i].rot);
-
-            if (!frame) {
-                tlog(0, "%f\n", (double) vert_cars[i * 8 + 0]);
-                tlog(0, "%f\n", (double) vert_cars[i * 8 + 1]);
-                tlog(0, "%f\n", (double) vert_cars[i * 8 + 2]);
-                tlog(0, "%f\n", (double) vert_cars[i * 8 + 3]);
-                tlog(0, "%f\n", (double) vert_cars[i * 8 + 4]);
-                tlog(0, "%f\n", (double) vert_cars[i * 8 + 5]);
-                tlog(0, "%f\n", (double) vert_cars[i * 8 + 6]);
-                tlog(0, "%f\n", (double) vert_cars[i * 8 + 7]);
-            }
         }
 
         glBindVertexArray(vaos[0]);
@@ -291,6 +266,13 @@ int main(int argc, char **argv) {
         glDrawElements(GL_LINES, sizeof(ind_cars) / sizeof (GLuint), GL_UNSIGNED_INT, 0);
 
         glfwSwapBuffers(window);
+
+        if (frame % 1024 == 0) {
+            if (glfwGetKey(window, GLFW_KEY_T)) {
+                tlog(1, "time for frame: %f ms\n", dt * 1000.0);
+                tlog(1, "framerate: %f fps\n", 1.0 / dt);
+            }
+        }
 
         if (
             glfwGetKey(window, GLFW_KEY_Q) ||
