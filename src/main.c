@@ -236,13 +236,23 @@ int main(int argc, char **argv) {
 
     glUseProgram(shader_program);
 
+    double begin_time = 0.0;
+    double end_time = 0.0;
+    float dt;
+
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
+        dt = (float) (end_time - begin_time);
+        begin_time = glfwGetTime();
 
         glClear(GL_COLOR_BUFFER_BIT);
 
         for (size_t i = 0; i < NUM_CARS; i++) {
-            cars[i].rot += (float) (glfwGetKey(window, GLFW_KEY_A) - glfwGetKey(window, GLFW_KEY_D)) * 0.001f;
+            cars[i].rot += (float) (glfwGetKey(window, GLFW_KEY_A) - glfwGetKey(window, GLFW_KEY_D)) * dt * 2.5f;
+            if (glfwGetKey(window, GLFW_KEY_W)) {
+                cars[i].pos[0] += cosf(cars[i].rot) * dt * 0.35f;
+                cars[i].pos[1] += sinf(cars[i].rot) * dt * 0.35f;
+            }
 
             vert_cars[i + 0] = cars[i].pos[0] + cars[i].hyp * cosf(cars[i].angles[0] + cars[i].rot);
             vert_cars[i + 1] = cars[i].pos[1] + cars[i].hyp * sinf(cars[i].angles[0] + cars[i].rot);
@@ -275,6 +285,8 @@ int main(int argc, char **argv) {
         ) {
             glfwSetWindowShouldClose(window, GLFW_TRUE);
         }
+
+        end_time = glfwGetTime();
     }
 
     glfwDestroyWindow(window);
