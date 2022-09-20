@@ -143,19 +143,19 @@ int main(int argc, char **argv) {
     float *vert_inner = vertices;
     float *vert_outer = vert_inner + size_inner * 2;
     float *vert_check = vert_outer + size_outer * 2;
-    float vert_cars[NUM_CARS * 16];
+    float vert_cars[NUM_CARS * CAR_NUM_VERTICES];
 
     for (size_t i = 0; i < size_inner; i++) {
         fscanf(fpt, "%f", vert_inner + i / 2 * 4 + i % 2);
     }
     for (size_t i = 0; i < size_inner; i++) {
-        vert_inner[i / 2 * 4 + i % 2 + 2] = vert_inner[(i / 2 * 4 + i % 2 + 4) % (size_inner * 2)];
+        vert_inner[i * 2 - i % 2 + 2] = vert_inner[(i * 2 - i % 2 + 4) % (size_inner * 2)];
     }
     for (size_t i = 0; i < size_outer; i++) {
         fscanf(fpt, "%f", vert_outer + i / 2 * 4 + i % 2);
     }
     for (size_t i = 0; i < size_outer; i++) {
-        vert_outer[i / 2 * 4 + i % 2 + 2] = vert_outer[(i / 2 * 4 + i % 2 + 4) % (size_outer * 2)];
+        vert_outer[i * 2 - i % 2 + 2] = vert_outer[(i * 2 - i % 2 + 4) % (size_outer * 2)];
     }
     for (size_t i = 0; i < size_checkpoints; i++) {
         fscanf(fpt, "%f", vert_check + i);
@@ -208,27 +208,28 @@ int main(int argc, char **argv) {
             }
 
             car_update_vertices(cars + i);
+            car_update_rays(cars + i, vertices, (size_inner + size_outer) * 2);
 
-            for (size_t j = 0; j < 16; j++) {
-                vert_cars[i * 16 + j] = cars[i].vertices[j];
+            for (size_t j = 0; j < CAR_NUM_VERTICES; j++) {
+                vert_cars[i * CAR_NUM_VERTICES + j] = cars[i].vertices[j];
             }
 
-            if (car_is_colliding(cars + i, vertices, (size_inner + size_outer) * 2)) {
-                //tlog(1, "car %zu is colliding with the track\n", i);
-            }
+            car_is_colliding(cars + i, vertices, (size_inner + size_outer) * 2);
 
             car_update_checkpoints(cars + i, vert_check, size_checkpoints);
-            if (frame % 1024 == 0) {
-                tlog(0, "checkpoints %zu\n", cars[i].checkpoints);
-            }
+
+            //if (frame % 1024 == 0) {
+            //    tlog(0, "checkpoints %zu\n", cars[i].checkpoints);
+            //    tlog(0, "alive %d\n", cars[i].alive);
+            //}
         }
 
         glBindVertexArray(vaos[0]);
-        glDrawArrays(GL_LINES, 0, size_vertices);
+        glDrawArrays(GL_LINES, 0, size_vertices / 2);
 
         glBindVertexArray(vaos[1]);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(vert_cars), vert_cars, GL_DYNAMIC_DRAW);
-        glDrawArrays(GL_LINES, 0, sizeof(vert_cars) / sizeof (float));
+        glBufferData(GL_ARRAY_BUFFER, sizeof vert_cars, vert_cars, GL_DYNAMIC_DRAW);
+        glDrawArrays(GL_LINES, 0, sizeof vert_cars / sizeof (float) / 2);
 
         glfwSwapBuffers(window);
 

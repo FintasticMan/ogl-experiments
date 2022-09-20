@@ -15,10 +15,22 @@ ifeq ($(CC),cc)
 CC := clang
 endif
 
-CPPFLAGS := -I$(INCDIR) $(shell pkg-config --static --cflags-only-I glfw3) $(CPPFLAGS)
+CPPFLAGS := -I$(INCDIR) $(CPPFLAGS)
 CFLAGS := -Wall -Wextra -Wpedantic -pipe -std=c17 \
-          $(shell pkg-config --static --cflags-only-other glfw3) $(CFLAGS)
-LDFLAGS := -fuse-ld=lld $(shell pkg-config --libs glfw3) -lm $(LDFLAGS)
+          $(CFLAGS)
+LDFLAGS := -fuse-ld=lld -lm $(LDFLAGS)
+
+LIBS := glfw3
+
+ifeq ($(strip $(STATIC)),1)
+CPPFLAGS += $(shell pkg-config --static --cflags-only-I $(LIBS))
+CFLAGS += $(shell pkg-config --static --cflags-only-other $(LIBS))
+LDFLAGS += $(shell pkg-config --static --libs $(LIBS)) -static
+else
+CPPFLAGS += $(shell pkg-config --cflags-only-I $(LIBS))
+CFLAGS += $(shell pkg-config --cflags-only-other $(LIBS))
+LDFLAGS += $(shell pkg-config --libs $(LIBS))
+endif
 
 DEBUGFLAGS ?= -g -glldb
 SANFLAGS ?= -fsanitize=undefined,address
