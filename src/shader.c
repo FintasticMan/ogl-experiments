@@ -1,24 +1,25 @@
+#include "shader.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 
-#include <exitcodes.h>
-#include <logging.h>
-#include <shader.h>
+#include "exitcodes.h"
+#include "logging.h"
 
-void create_shader(const char *path, GLenum type, GLuint *dest) {
+void create_shader(char const * const path, GLenum const type, GLuint * const dest) {
     *dest = glCreateShader(type);
 
-    FILE *fp = fopen(path, "rb");
-    if (fp == NULL) {
+    FILE * const fp = fopen(path, "rb");
+    if (!fp) {
         exit(EFOPENFAIL);
     }
 
     fseek(fp, 0, SEEK_END);
 
-    size_t file_size = ftell(fp);
+    size_t const file_size = ftell(fp);
 
-    GLchar *source = malloc(file_size + sizeof (GLchar));
-    if (source == NULL) {
+    GLchar * const source = malloc(file_size + sizeof (GLchar));
+    if (!source) {
         exit(EALLOCFAIL);
     }
 
@@ -28,7 +29,7 @@ void create_shader(const char *path, GLenum type, GLuint *dest) {
 
     fclose(fp);
 
-    glShaderSource(*dest, 1, (const GLchar *const *) &source, NULL);
+    glShaderSource(*dest, 1, (GLchar const * const *) &source, NULL);
 
     glCompileShader(*dest);
 
@@ -42,14 +43,14 @@ void create_shader(const char *path, GLenum type, GLuint *dest) {
 
         glDeleteShader(*dest);
 
-        tlog(5, "SHADER COMPILE ERROR: %s\n%s\n", path, error_string);
+        tlog(5, "SHADER COMPILE ERROR: %s\n%s", path, error_string);
         exit(EGLSHADERERROR);
     }
 
     free(source);
 }
 
-void create_program_compute(const char *compute_shader_path, GLuint *dest) {
+void create_program_compute(char const * const compute_shader_path, GLuint * const dest) {
     *dest = glCreateProgram();
 
     GLuint compute_shader = 0;
@@ -62,7 +63,7 @@ void create_program_compute(const char *compute_shader_path, GLuint *dest) {
     GLint success = 0;
     glGetProgramiv(*dest, GL_LINK_STATUS, &success);
     if (success != GL_TRUE) {
-        tlog(5, "SHADER LINK ERROR\n");
+        tlog(5, "SHADER LINK ERROR");
         exit(EGLSHADERERROR);
     }
 
@@ -70,12 +71,12 @@ void create_program_compute(const char *compute_shader_path, GLuint *dest) {
 }
 
 void create_program(
-    const char *vertex_shader_path,
-    const char *tessellation_control_shader_path,
-    const char *tessellation_evaluation_shader_path,
-    const char *geometry_shader_path,
-    const char *fragment_shader_path,
-    GLuint *dest
+    char const * const vertex_shader_path,
+    char const * const tessellation_control_shader_path,
+    char const * const tessellation_evaluation_shader_path,
+    char const * const geometry_shader_path,
+    char const * const fragment_shader_path,
+    GLuint * const dest
 ) {
     *dest = glCreateProgram();
 
@@ -85,11 +86,11 @@ void create_program(
     GLuint geometry_shader = 0;
     GLuint fragment_shader = 0;
 
-    if (vertex_shader_path != NULL) {
+    if (vertex_shader_path) {
         create_shader(vertex_shader_path, GL_VERTEX_SHADER, &vertex_shader);
         glAttachShader(*dest, vertex_shader);
     }
-    if (tessellation_control_shader_path != NULL) {
+    if (tessellation_control_shader_path) {
         create_shader(
             tessellation_control_shader_path,
             GL_TESS_CONTROL_SHADER,
@@ -97,7 +98,7 @@ void create_program(
         );
         glAttachShader(*dest, tessellation_control_shader);
     }
-    if (tessellation_evaluation_shader_path != NULL) {
+    if (tessellation_evaluation_shader_path) {
         create_shader(
             tessellation_evaluation_shader_path,
             GL_TESS_EVALUATION_SHADER,
@@ -105,7 +106,7 @@ void create_program(
         );
         glAttachShader(*dest, tessellation_evaluation_shader);
     }
-    if (geometry_shader_path != NULL) {
+    if (geometry_shader_path) {
         create_shader(
             geometry_shader_path,
             GL_GEOMETRY_SHADER,
@@ -113,7 +114,7 @@ void create_program(
         );
         glAttachShader(*dest, geometry_shader);
     }
-    if (fragment_shader_path != NULL) {
+    if (fragment_shader_path) {
         create_shader(
             fragment_shader_path,
             GL_FRAGMENT_SHADER,
@@ -127,23 +128,23 @@ void create_program(
     GLint success = 0;
     glGetProgramiv(*dest, GL_LINK_STATUS, &success);
     if (success != GL_TRUE) {
-        tlog(5, "SHADER LINK ERROR\n");
+        tlog(5, "SHADER LINK ERROR");
         exit(EGLSHADERERROR);
     }
 
-    if (vertex_shader_path != NULL) {
+    if (vertex_shader_path) {
         glDeleteShader(vertex_shader);
     }
-    if (tessellation_control_shader_path != NULL) {
+    if (tessellation_control_shader_path) {
         glDeleteShader(tessellation_control_shader);
     }
-    if (tessellation_evaluation_shader_path != NULL) {
+    if (tessellation_evaluation_shader_path) {
         glDeleteShader(tessellation_evaluation_shader);
     }
-    if (geometry_shader_path != NULL) {
+    if (geometry_shader_path) {
         glDeleteShader(geometry_shader);
     }
-    if (fragment_shader_path != NULL) {
+    if (fragment_shader_path) {
         glDeleteShader(fragment_shader);
     }
 }

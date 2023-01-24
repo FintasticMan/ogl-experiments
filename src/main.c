@@ -1,5 +1,7 @@
 #include <ctype.h>
+#include <inttypes.h>
 #include <math.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -7,10 +9,10 @@
 #include <GLFW/glfw3.h>
 #include <glad/gl.h>
 
-#include <car.h>
-#include <exitcodes.h>
-#include <logging.h>
-#include <shader.h>
+#include "car.h"
+#include "exitcodes.h"
+#include "logging.h"
+#include "shader.h"
 
 #define WIDTH 1024
 #define HEIGHT 1024
@@ -18,47 +20,43 @@
 #define NUM_CARS 1
 #define PI 3.141592653589793f
 
-static void error_callback(int errorcode, const char *description) {
-    tlog(5, "GLFW error: %d %s\n", errorcode, description);
+static void error_callback(int const errorcode, char const * const description) {
+    tlog(5, "GLFW error: %d %s", errorcode, description);
 }
 
 static void APIENTRY gl_error_callback(
-    GLenum source,
-    GLenum type,
-    GLuint id,
-    GLenum severity,
-    GLint length,
-    const GLchar *message,
-    const void *userparam
+    GLenum const source,
+    GLenum const type,
+    GLuint const id,
+    GLenum const severity,
+    GLint const length,
+    GLchar const * const message,
+    void const * const userparam
 ) {
     if (severity != GL_DEBUG_SEVERITY_NOTIFICATION) {
-        tlog(
-            5,
-            "GL_ERROR\nsource: 0x%x\ntype: 0x%x\nid: %u\nseverity: 0x%x\n"
-            "length: %d\nmessage: %s\nuserparam: 0x%p\n",
-            source,
-            type,
-            id,
-            severity,
-            length,
-            message,
-            userparam
-        );
+        tlog(5, "GL_ERROR");
+        tlog(5, "    source: 0x%" PRIX32, source);
+        tlog(5, "    type: 0x%" PRIX32, type);
+        tlog(5, "    id: %" PRIu32, id);
+        tlog(5, "    severity: 0x%" PRIX32, severity);
+        tlog(5, "    length: %" PRId32, length);
+        tlog(5, "    length: %s", message);
+        tlog(5, "    userparam: 0x%p", userparam);
     }
 }
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 static void framebuffer_size_callback(
-    GLFWwindow *window, //NOLINT(misc-unused-parameters)
-    int width,
-    int height
+    GLFWwindow * const window, //NOLINT(misc-unused-parameters)
+    int const width,
+    int const height
 ) {
     glViewport(0, 0, width, height);
 }
 #pragma GCC diagnostic pop
 
-int main(int argc, char **argv) {
+int main(int const argc, char const * const * const argv) {
     tlog_init(argc < 2 ? 0 : (uint8_t) strtoul(argv[1], NULL, 0), stderr);
 
     glfwSetErrorCallback(error_callback);
@@ -72,14 +70,14 @@ int main(int argc, char **argv) {
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
-    GLFWwindow *window = glfwCreateWindow(
+    GLFWwindow * const window = glfwCreateWindow(
         WIDTH,
         HEIGHT,
         "them ais do be leanrin to drove",
         NULL,
         NULL
     );
-    if (window == NULL) {
+    if (!window) {
         glfwTerminate();
         return EGLFWWINDOWFAIL;
     }
@@ -99,7 +97,7 @@ int main(int argc, char **argv) {
     glEnable(GL_DEBUG_OUTPUT);
     glDebugMessageCallback(gl_error_callback, NULL);
 
-    glClearColor(1.0f, 0.0f, 1.0f, 1.0f);
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
     GLuint shader_program;
     create_program(
@@ -111,8 +109,8 @@ int main(int argc, char **argv) {
         &shader_program
     );
 
-    FILE *fpt = fopen("track.csv", "r");
-    if (fpt == NULL) {
+    FILE * const fpt = fopen("track.csv", "r");
+    if (!fpt) {
         return EFOPENFAIL;
     }
 
@@ -139,10 +137,10 @@ int main(int argc, char **argv) {
 
     size_t size_vertices = (size_inner + size_outer) * 2 + size_checkpoints;
 
-    float *vertices = malloc(size_vertices * sizeof (float));
-    float *vert_inner = vertices;
-    float *vert_outer = vert_inner + size_inner * 2;
-    float *vert_check = vert_outer + size_outer * 2;
+    float * const vertices = malloc(size_vertices * sizeof (float));
+    float * const vert_inner = vertices;
+    float * const vert_outer = vert_inner + size_inner * 2;
+    float * const vert_check = vert_outer + size_outer * 2;
     float vert_cars[NUM_CARS * CAR_NUM_VERTICES];
 
     for (size_t i = 0; i < size_inner; i++) {
@@ -191,7 +189,7 @@ int main(int argc, char **argv) {
     double begin_time = 0.0;
     double end_time = 0.0;
     double dt;
-    unsigned long long frame = 0;
+    uint64_t frame = 0;
 
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
@@ -214,13 +212,13 @@ int main(int argc, char **argv) {
                 vert_cars[i * CAR_NUM_VERTICES + j] = cars[i].vertices[j];
             }
 
-            car_is_colliding(cars + i, vertices, (size_inner + size_outer) * 2);
+            car_update_alive(cars + i, vertices, (size_inner + size_outer) * 2);
 
             car_update_checkpoints(cars + i, vert_check, size_checkpoints);
 
             //if (frame % 1024 == 0) {
-            //    tlog(0, "checkpoints %zu\n", cars[i].checkpoints);
-            //    tlog(0, "alive %d\n", cars[i].alive);
+            //    tlog(0, "checkpoints %zu", cars[i].checkpoints);
+            //    tlog(0, "alive %d", cars[i].alive);
             //}
         }
 
@@ -235,8 +233,8 @@ int main(int argc, char **argv) {
 
         if (frame % 1024 == 0) {
             if (glfwGetKey(window, GLFW_KEY_T)) {
-                tlog(1, "time for frame: %f ms\n", dt * 1000.0);
-                tlog(1, "framerate: %f fps\n", 1.0 / dt);
+                tlog(1, "time for frame: %f ms", dt * 1000.0);
+                tlog(1, "framerate: %f fps", 1.0 / dt);
             }
         }
 

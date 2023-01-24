@@ -1,19 +1,21 @@
 .PHONY: all clean run debug
 
+PROJECT := ai-learns-to-drive
+VERSION := 0.1.0
+
 CC := clang
 DEBUGGER := lldb
 MKDIR := mkdir -p
 SRCDIR := src
 LIBDIR := lib
-OBJDIR := obj
-DEPDIR := dep
-INCDIR := inc
+BUILDDIR := build
+INCDIRS := inc
 SRCS := $(shell find $(SRCDIR) $(LIBDIR) -type f -name '*.c')
-OBJS := $(SRCS:%=$(OBJDIR)/%.o)
-DEPS := $(SRCS:%=$(DEPDIR)/%.d)
-BIN ?= main
+OBJS := $(SRCS:%=$(BUILDDIR)/%.o)
+DEPS := $(SRCS:%=$(BUILDDIR)/%.d)
+BIN := $(BUILDDIR)/$(PROJECT)-$(VERSION)
 
-CPPFLAGS := -I$(INCDIR) $(CPPFLAGS)
+CPPFLAGS := $(foreach INCDIR,$(INCDIRS),-I$(INCDIR)) $(CPPFLAGS)
 CFLAGS := -pipe $(CFLAGS)
 LDFLAGS := -fuse-ld=mold -lm $(LDFLAGS)
 
@@ -56,17 +58,17 @@ endif
 
 all: $(BIN)
 
-$(DEPDIR)/%.c.d: %.c
+$(BUILDDIR)/%.c.d: %.c
 	@$(MKDIR) $(@D)
-	@$(CC) $(CPPFLAGS) -MM $< | sed 's,$(*F)\.o[: ]*,$(OBJDIR)/$<.o: ,g' > $@
+	@$(CC) $(CPPFLAGS) -MM $< | sed 's,$(*F)\.o[: ]*,$(BUILDDIR)/$<.o: ,g' > $@
 
 include $(DEPS)
 
-$(OBJDIR)/$(SRCDIR)/%.c.o: $(SRCDIR)/%.c
+$(BUILDDIR)/$(SRCDIR)/%.c.o: $(SRCDIR)/%.c
 	@$(MKDIR) $(@D)
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(OWNFLAGS) -c $< -o $@
 
-$(OBJDIR)/$(LIBDIR)/%.c.o: $(LIBDIR)/%.c
+$(BUILDDIR)/$(LIBDIR)/%.c.o: $(LIBDIR)/%.c
 	@$(MKDIR) $(@D)
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
 
@@ -74,7 +76,7 @@ $(BIN): $(OBJS)
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(OWNFLAGS) $(LDFLAGS) $^ -o $@
 
 clean:
-	$(RM) -r $(OBJDIR) $(DEPDIR) $(BIN)
+	$(RM) -r $(BUILDDIR)
 
 run: $(BIN)
 	./$(BIN) $(ARGS)

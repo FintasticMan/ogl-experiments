@@ -2,15 +2,13 @@
 #define CAR_H
 
 #include <math.h>
+#include <stdbool.h>
 #include <stdlib.h>
-
-#include <logging.h>
 
 #define CAR_NUM_RAYS 7
 #define CAR_NUM_VERTICES (16 + CAR_NUM_RAYS * 4)
 
 #define PI 3.141592653589793f
-
 
 struct car {
     float pos[2];
@@ -20,13 +18,13 @@ struct car {
     float angles[4];
     float vertices[CAR_NUM_VERTICES];
     size_t checkpoints;
-    int alive;
+    bool alive;
     float fov;
     float ray_angles[CAR_NUM_RAYS];
     float ray_ends[CAR_NUM_RAYS * 2];
 };
 
-static inline void car_init(struct car *car, float *car_start) {
+static inline void car_init(struct car * const car, float const * const car_start) {
     car->pos[0] = car_start[0];
     car->pos[1] = car_start[1];
     car->rot = car_start[2];
@@ -45,7 +43,7 @@ static inline void car_init(struct car *car, float *car_start) {
     }
 }
 
-static inline void car_update_vertices(struct car *car) {
+static inline void car_update_vertices(struct car * const car) {
     car->vertices[0] = car->pos[0] + car->hyp * cosf(car->angles[0] + car->rot);
     car->vertices[1] = car->pos[1] + car->hyp * sinf(car->angles[0] + car->rot);
     car->vertices[2] = car->pos[0] + car->hyp * cosf(car->angles[1] + car->rot);
@@ -69,68 +67,86 @@ static inline void car_update_vertices(struct car *car) {
     }
 }
 
-static inline void l_l_intersect(const float *l1, const float *l2, float *t, float *u) {
-    float den = (l1[0] - l1[2]) * (l2[1] - l2[3]) - (l1[1] - l1[3]) * (l2[0] - l2[2]);
-    *t = ((l1[0] - l2[0]) * (l2[1] - l2[3]) - (l1[1] - l2[1]) * (l2[0] - l2[2])) / den;
-    *u = -((l1[0] - l1[2]) * (l1[1] - l2[1]) - (l1[1] - l1[3]) * (l1[0] - l2[0])) / den;
+// see https://en.wikipedia.org/wiki/Line%E2%80%93line_intersection#Given_two_points_on_each_line
+static inline void l_l_intersect(
+    float const * const l1,
+    float const * const l2,
+    float * const t,
+    float * const u
+) {
+    float const x1 = l1[0];
+    float const y1 = l1[1];
+    float const x2 = l1[2];
+    float const y2 = l1[3];
+
+    float const x3 = l2[0];
+    float const y3 = l2[1];
+    float const x4 = l2[2];
+    float const y4 = l2[3];
+
+    float const den = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
+    *t = ((x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4)) / den;
+    *u = ((x1 - x3) * (y1 - y2) - (y1 - y3) * (x1 - x2)) / den;
 }
 
-static inline void car_is_colliding(struct car *car, const float *track, size_t track_size) {
-    float t;
-    float u;
+static inline void car_update_alive(
+    struct car * const car,
+    float const * const track,
+    size_t const track_size
+) {
     for (size_t i = 0; i < track_size; i += 4) {
-        l_l_intersect(car->vertices + 4, track + i, &t, &u);
+        float t;
+        float u;
+        l_l_intersect(track + i, car->vertices + 4, &t, &u);
         if (t >= 0.0f && t <= 1.0f && u >= 0.0f && u <= 1.0f) {
-            car->alive = 0;
+            car->alive = false;
+            return;
         }
-        l_l_intersect(car->vertices + 12, track + i, &t, &u);
+        l_l_intersect(track + i, car->vertices + 12, &t, &u);
         if (t >= 0.0f && t <= 1.0f && u >= 0.0f && u <= 1.0f) {
-            car->alive = 0;
+            car->alive = false;
+            return;
         }
     }
 }
 
-static inline void car_update_checkpoints(struct car *car, const float *checkpoints, size_t checkpoints_size) {
+static inline void car_update_checkpoints(
+    struct car * const car,
+    float const * const checkpoints,
+    size_t const checkpoints_size
+) {
     float t;
     float u;
-    l_l_intersect(car->vertices + 4, checkpoints + (car->checkpoints * 4) % checkpoints_size, &t, &u);
+    l_l_intersect(checkpoints + (car->checkpoints * 4) % checkpoints_size, car->vertices + 4, &t, &u);
     if (t >= 0.0f && t <= 1.0f && u >= 0.0f && u <= 1.0f) {
         car->checkpoints++;
     }
-    l_l_intersect(car->vertices + 12, checkpoints + (car->checkpoints * 4) % checkpoints_size, &t, &u);
+    l_l_intersect(checkpoints + (car->checkpoints * 4) % checkpoints_size, car->vertices + 12, &t, &u);
     if (t >= 0.0f && t <= 1.0f && u >= 0.0f && u <= 1.0f) {
         car->checkpoints++;
     }
 }
 
-static inline void car_update_rays(struct car *car, const float *track, size_t track_size) {
-    float t;
-    float u;
-    float *us = calloc(track_size / 4, sizeof (float));
-    float *ts = calloc(track_size / 4, sizeof (float));
+static inline void car_update_rays(
+    struct car * const car,
+    float const * const track,
+    size_t const track_size
+) {
     for (size_t i = 0; i < CAR_NUM_RAYS; i++) {
-	car->vertices[16 + i * 4 + 2] = cosf(car->ray_angles[i] + car->rot) + car->pos[0];
-	car->vertices[16 + i * 4 + 3] = sinf(car->ray_angles[i] + car->rot) + car->pos[1];
+        car->vertices[16 + i * 4 + 2] = car->pos[0] + cosf(car->ray_angles[i] + car->rot);
+        car->vertices[16 + i * 4 + 3] = car->pos[1] + sinf(car->ray_angles[i] + car->rot);
+        float min_u = 0.0f;
         for (size_t j = 0; j < track_size / 4; j++) {
+            float t;
+            float u;
             l_l_intersect(track + j * 4, car->vertices + 16 + i * 4, &t, &u);
-	    if (t >= 0.0f &&  t <= 1.0f  && u >= 0.0f) {
-	        us[j] = u;
-		ts[j] = t;
-	    }
-	}
-	for (size_t j = 0; j < track_size / 4; j++) {
-	    u = 0.0f;
-	    t = 0.0f;
-	    if (us[j] > u) {
-	        u = us[j];
-		t = ts[j];
-	    }
-	}
-	//car->vertices[16 + i * 4 + 2] = car->pos[0] + t * (car->vertices[16 + i * 4 + 2] - car->pos[0]);
-	//car->vertices[16 + i * 4 + 3] = car->pos[1] + t * (car->vertices[16 + i * 4 + 3] - car->pos[1]);
+            if (t >= 0.0f && t <= 1.0f && u > 0.0f && (u < min_u || min_u == 0.0f)) {
+                min_u = u;
+            }
+        }
+        car->vertices[16 + i * 4 + 2] = car->pos[0] + min_u * (car->vertices[16 + i * 4 + 2] - car->pos[0]);
+        car->vertices[16 + i * 4 + 3] = car->pos[1] + min_u * (car->vertices[16 + i * 4 + 3] - car->pos[1]);
     }
-    free(us);
-    free(ts);
 }
 
 #undef PI

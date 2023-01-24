@@ -1,28 +1,29 @@
+#include "logging.h"
+
 #include <inttypes.h>
 #include <stdarg.h>
 #include <stddef.h>
 #include <time.h>
 
-#include <logging.h>
+static uint8_t level = 0;
+static FILE * fpt;
 
-static uint8_t ll = 0;
-static FILE *fp = NULL;
-
-void tlog_init(uint8_t loglevel, FILE *dest) {
-    ll = loglevel;
-    fp = dest != NULL ? dest : stderr;
+void tlog_init(uint8_t const loglevel, FILE * const dest) {
+    level = loglevel;
+    fpt = dest ? dest : stderr;
 }
 
-void tlog(uint8_t loglevel, const char *restrict fmt, ...) {
-    if (loglevel < ll) {
+void tlog(uint8_t const loglevel, char const * const restrict fmt, ...) {
+    if (loglevel < level) {
         return;
     }
-    char t[9] = {0};
+    char time_str[9] = {0};
     time_t cur = time(NULL);
-    strftime(t, sizeof t, "%T", localtime(&cur));
-    fprintf(fp, "[%" PRIu8 " %s] ", loglevel, t);
+    strftime(time_str, sizeof time_str, "%T", localtime(&cur));
+    fprintf(fpt, "[%" PRIu8 " %s] ", loglevel, time_str);
     va_list args;
     va_start(args, fmt);
-    vfprintf(fp, fmt, args);
+    vfprintf(fpt, fmt, args);
     va_end(args);
+    fprintf(fpt, "\n");
 }

@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <stdint.h>
 
-void tlog_init(uint8_t loglevel, FILE *dest);
-void tlog(uint8_t loglevel, const char *restrict fmt, ...);
+void tlog_init(uint8_t loglevel, FILE * dest);
+void tlog(uint8_t loglevel, char const * restrict fmt, ...);
 
 #endif
