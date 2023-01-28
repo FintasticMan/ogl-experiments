@@ -17,7 +17,7 @@
 #define WIDTH 1024
 #define HEIGHT 1024
 #define VSYNC GLFW_FALSE
-#define NUM_CARS 1
+#define NUM_CARS 8
 #define PI 3.141592653589793f
 
 static void error_callback(int const errorcode, char const * const description) {
@@ -163,6 +163,7 @@ int main(int const argc, char const * const * const argv) {
     fscanf(fpt, "%f\t%f\t%f", car_start, car_start + 1, car_start + 2);
 
     struct car cars[NUM_CARS];
+    uint64_t generation = 1;
     for (size_t i = 0; i < NUM_CARS; i++) {
         car_init(cars + i, car_start);
     }
@@ -174,7 +175,7 @@ int main(int const argc, char const * const * const argv) {
 
     glBindVertexArray(vaos[0]);
     glBindBuffer(GL_ARRAY_BUFFER, vbos[0]);
-    glBufferData(GL_ARRAY_BUFFER, size_vertices * sizeof (float), vertices, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr) (size_vertices * sizeof (float)), vertices, GL_STATIC_DRAW);
 
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof (float), (GLvoid *) 0);
     glEnableVertexAttribArray(0);
@@ -198,7 +199,13 @@ int main(int const argc, char const * const * const argv) {
 
         glClear(GL_COLOR_BUFFER_BIT);
 
+        size_t num_dead_cars = 0;
         for (size_t i = 0; i < NUM_CARS; i++) {
+            if (!cars[i].alive) {
+                num_dead_cars++;
+                continue;
+            }
+
             cars[i].rot += (float) (glfwGetKey(window, GLFW_KEY_A) - glfwGetKey(window, GLFW_KEY_D)) * (float) dt * 5.0f;
             if (glfwGetKey(window, GLFW_KEY_W)) {
                 cars[i].pos[0] += cosf(cars[i].rot) * (float) dt * 0.35f;
@@ -206,24 +213,37 @@ int main(int const argc, char const * const * const argv) {
             }
 
             car_update_vertices(cars + i);
+
             car_update_rays(cars + i, vertices, (size_inner + size_outer) * 2);
+
+            car_update_checkpoints(cars + i, vert_check, size_checkpoints);
+
+            car_update_alive(cars + i, vertices, (size_inner + size_outer) * 2);
+
+            if (!cars[i].alive) {
+                num_dead_cars++;
+                for (size_t j = 0; j < CAR_NUM_VERTICES; j++) {
+                    vert_cars[i * CAR_NUM_VERTICES + j] = 0.0f;
+                }
+                continue;
+            }
 
             for (size_t j = 0; j < CAR_NUM_VERTICES; j++) {
                 vert_cars[i * CAR_NUM_VERTICES + j] = cars[i].vertices[j];
             }
 
-            car_update_alive(cars + i, vertices, (size_inner + size_outer) * 2);
+        }
 
-            car_update_checkpoints(cars + i, vert_check, size_checkpoints);
-
-            //if (frame % 1024 == 0) {
-            //    tlog(0, "checkpoints %zu", cars[i].checkpoints);
-            //    tlog(0, "alive %d", cars[i].alive);
-            //}
+        if (num_dead_cars == NUM_CARS) {
+            generation++;
+            tlog(0, "gen: %" PRIu64, generation);
+            for (size_t i = 0; i < NUM_CARS; i++) {
+                car_init(cars + i, car_start);
+            }
         }
 
         glBindVertexArray(vaos[0]);
-        glDrawArrays(GL_LINES, 0, size_vertices / 2);
+        glDrawArrays(GL_LINES, 0, (GLsizei) (size_vertices / 2));
 
         glBindVertexArray(vaos[1]);
         glBufferData(GL_ARRAY_BUFFER, sizeof vert_cars, vert_cars, GL_DYNAMIC_DRAW);

@@ -5,7 +5,7 @@
 #include <stddef.h>
 #include <time.h>
 
-static uint8_t level = 0;
+static uint8_t level;
 static FILE * fpt;
 
 void tlog_init(uint8_t const loglevel, FILE * const dest) {

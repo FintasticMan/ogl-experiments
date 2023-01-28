@@ -9,25 +9,25 @@
 void create_shader(char const * const path, GLenum const type, GLuint * const dest) {
     *dest = glCreateShader(type);
 
-    FILE * const fp = fopen(path, "rb");
-    if (!fp) {
+    FILE * const fpt = fopen(path, "rb");
+    if (!fpt) {
         exit(EFOPENFAIL);
     }
 
-    fseek(fp, 0, SEEK_END);
+    fseek(fpt, 0, SEEK_END);
 
-    size_t const file_size = ftell(fp);
+    size_t const file_size = ftell(fpt);
 
     GLchar * const source = malloc(file_size + sizeof (GLchar));
     if (!source) {
         exit(EALLOCFAIL);
     }
 
-    fseek(fp, 0, SEEK_SET);
-    fread(source, 1, file_size, fp);
+    fseek(fpt, 0, SEEK_SET);
+    fread(source, 1, file_size, fpt);
     source[file_size] = '\0';
 
-    fclose(fp);
+    fclose(fpt);
 
     glShaderSource(*dest, 1, (GLchar const * const *) &source, NULL);
 

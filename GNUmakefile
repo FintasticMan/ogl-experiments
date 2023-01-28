@@ -15,7 +15,7 @@ OBJS := $(SRCS:%=$(BUILDDIR)/%.o)
 DEPS := $(SRCS:%=$(BUILDDIR)/%.d)
 BIN := $(BUILDDIR)/$(PROJECT)-$(VERSION)
 
-CPPFLAGS := $(foreach INCDIR,$(INCDIRS),-I$(INCDIR)) $(CPPFLAGS)
+CPPFLAGS := $(foreach INCDIR,$(INCDIRS),-I $(INCDIR)) $(CPPFLAGS)
 CFLAGS := -pipe $(CFLAGS)
 LDFLAGS := -fuse-ld=mold -lm $(LDFLAGS)
 
@@ -33,7 +33,7 @@ LDFLAGS += $(shell pkg-config --libs $(LIBS))
 endif
 endif
 
-OWNFLAGS ?= -std=c17 -Wall -Wextra -Wpedantic
+OWNFLAGS ?= -std=c17 -Wall -Wextra -Wpedantic -Werror
 DEBUGFLAGS ?= -g -glldb
 SANFLAGS ?= -fsanitize=undefined,address
 OPTIFLAGS ?= -O2
@@ -60,7 +60,7 @@ all: $(BIN)
 
 $(BUILDDIR)/%.c.d: %.c
 	@$(MKDIR) $(@D)
-	@$(CC) $(CPPFLAGS) -MM $< | sed 's,$(*F)\.o[: ]*,$(BUILDDIR)/$<.o: ,g' > $@
+	@$(CC) $(CPPFLAGS) -MM $< | sed 's,$(*F)\.o[: ]*,$(BUILDDIR)/$<.o $(BUILDDIR)/$<.d: ,g' > $@
 
 include $(DEPS)
 
@@ -73,6 +73,7 @@ $(BUILDDIR)/$(LIBDIR)/%.c.o: $(LIBDIR)/%.c
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
 
 $(BIN): $(OBJS)
+	@$(MKDIR) $(@D)
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(OWNFLAGS) $(LDFLAGS) $^ -o $@
 
 clean:
