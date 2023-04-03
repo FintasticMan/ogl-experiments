@@ -10,7 +10,7 @@ SRCDIR := src
 LIBDIR := lib
 BUILDDIR := build
 INCDIRS := inc
-SRCS := $(shell find $(SRCDIR) $(LIBDIR) -type f -name '*.c')
+SRCS := $(shell find $(SRCDIR) $(LIBDIR) -type f -iname '*.c')
 OBJS := $(SRCS:%=$(BUILDDIR)/%.o)
 DEPS := $(SRCS:%=$(BUILDDIR)/%.d)
 BIN := $(BUILDDIR)/$(PROJECT)-$(VERSION)
@@ -34,7 +34,7 @@ endif
 endif
 
 OWNFLAGS ?= -std=c17 -Wall -Wextra -Wpedantic -Werror
-DEBUGFLAGS ?= -g -glldb
+DEBUGFLAGS ?= -g
 SANFLAGS ?= -fsanitize=undefined,address
 OPTIFLAGS ?= -O2
 LTOFLAGS ?= -flto
@@ -60,7 +60,7 @@ all: $(BIN)
 
 $(BUILDDIR)/%.c.d: %.c
 	@$(MKDIR) $(@D)
-	@$(CC) $(CPPFLAGS) -MM $< | sed 's,$(*F)\.o[: ]*,$(BUILDDIR)/$<.o $(BUILDDIR)/$<.d: ,g' > $@
+	@$(CC) $(CPPFLAGS) -M $< | tr -s '[:space:]\\\n' ' ' | sed 's,\s*$(*F)\.o[: ]*$<\s*\(.*\)\s*$$,$(BUILDDIR)/$<.o $(BUILDDIR)/$<.d: $< \1\n\1\n,' | sed '2,$$s,\s*\(\S*\)\s*,\n\n\1:,g' > $@
 
 include $(DEPS)
 
@@ -77,7 +77,7 @@ $(BIN): $(OBJS)
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(OWNFLAGS) $(LDFLAGS) $^ -o $@
 
 clean:
-	$(RM) -r $(BUILDDIR)
+	@$(RM) $(shell find $(BUILDDIR) -type f -iname '*.o' -o -iname '*.d') $(BIN)
 
 run: $(BIN)
 	./$(BIN) $(ARGS)

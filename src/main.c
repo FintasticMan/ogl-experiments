@@ -6,8 +6,8 @@
 #include <stdlib.h>
 
 #define GLFW_INCLUDE_NONE
-#include <GLFW/glfw3.h>
 #include <glad/gl.h>
+#include <GLFW/glfw3.h>
 
 #include "car.h"
 #include "exitcodes.h"
@@ -20,7 +20,7 @@
 #define NUM_CARS 8
 #define PI 3.141592653589793f
 
-static void error_callback(int const errorcode, char const * const description) {
+static void error_callback(int const errorcode, char const *const description) {
     tlog(5, "GLFW error: %d %s", errorcode, description);
 }
 
@@ -30,8 +30,8 @@ static void APIENTRY gl_error_callback(
     GLuint const id,
     GLenum const severity,
     GLint const length,
-    GLchar const * const message,
-    void const * const userparam
+    GLchar const *const message,
+    void const *const userparam
 ) {
     if (severity != GL_DEBUG_SEVERITY_NOTIFICATION) {
         tlog(5, "GL_ERROR");
@@ -47,16 +47,18 @@ static void APIENTRY gl_error_callback(
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
+
 static void framebuffer_size_callback(
-    GLFWwindow * const window, //NOLINT(misc-unused-parameters)
+    GLFWwindow *const window, //NOLINT(misc-unused-parameters)
     int const width,
     int const height
 ) {
     glViewport(0, 0, width, height);
 }
+
 #pragma GCC diagnostic pop
 
-int main(int const argc, char const * const * const argv) {
+int main(int const argc, char const *const *const argv) {
     tlog_init(argc < 2 ? 0 : (uint8_t) strtoul(argv[1], NULL, 0), stderr);
 
     glfwSetErrorCallback(error_callback);
@@ -70,7 +72,7 @@ int main(int const argc, char const * const * const argv) {
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
-    GLFWwindow * const window = glfwCreateWindow(
+    GLFWwindow *const window = glfwCreateWindow(
         WIDTH,
         HEIGHT,
         "them ais do be leanrin to drove",
@@ -109,7 +111,7 @@ int main(int const argc, char const * const * const argv) {
         &shader_program
     );
 
-    FILE * const fpt = fopen("track.csv", "r");
+    FILE *const fpt = fopen("track.csv", "r");
     if (!fpt) {
         return EFOPENFAIL;
     }
@@ -137,23 +139,25 @@ int main(int const argc, char const * const * const argv) {
 
     size_t size_vertices = (size_inner + size_outer) * 2 + size_checkpoints;
 
-    float * const vertices = malloc(size_vertices * sizeof (float));
-    float * const vert_inner = vertices;
-    float * const vert_outer = vert_inner + size_inner * 2;
-    float * const vert_check = vert_outer + size_outer * 2;
+    float *const vertices = malloc(size_vertices * sizeof(float));
+    float *const vert_inner = vertices;
+    float *const vert_outer = vert_inner + size_inner * 2;
+    float *const vert_check = vert_outer + size_outer * 2;
     float vert_cars[NUM_CARS * CAR_NUM_VERTICES];
 
     for (size_t i = 0; i < size_inner; i++) {
         fscanf(fpt, "%f", vert_inner + i / 2 * 4 + i % 2);
     }
     for (size_t i = 0; i < size_inner; i++) {
-        vert_inner[i * 2 - i % 2 + 2] = vert_inner[(i * 2 - i % 2 + 4) % (size_inner * 2)];
+        vert_inner[i * 2 - i % 2 + 2]
+            = vert_inner[(i * 2 - i % 2 + 4) % (size_inner * 2)];
     }
     for (size_t i = 0; i < size_outer; i++) {
         fscanf(fpt, "%f", vert_outer + i / 2 * 4 + i % 2);
     }
     for (size_t i = 0; i < size_outer; i++) {
-        vert_outer[i * 2 - i % 2 + 2] = vert_outer[(i * 2 - i % 2 + 4) % (size_outer * 2)];
+        vert_outer[i * 2 - i % 2 + 2]
+            = vert_outer[(i * 2 - i % 2 + 4) % (size_outer * 2)];
     }
     for (size_t i = 0; i < size_checkpoints; i++) {
         fscanf(fpt, "%f", vert_check + i);
@@ -175,14 +179,33 @@ int main(int const argc, char const * const * const argv) {
 
     glBindVertexArray(vaos[0]);
     glBindBuffer(GL_ARRAY_BUFFER, vbos[0]);
-    glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr) (size_vertices * sizeof (float)), vertices, GL_STATIC_DRAW);
+    glBufferData(
+        GL_ARRAY_BUFFER,
+        (size_vertices * sizeof(float)),
+        vertices,
+        GL_STATIC_DRAW
+    );
 
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof (float), (GLvoid *) 0);
+    glVertexAttribPointer(
+        0,
+        2,
+        GL_FLOAT,
+        GL_FALSE,
+        2 * sizeof(float),
+        (GLvoid *) 0
+    );
     glEnableVertexAttribArray(0);
 
     glBindVertexArray(vaos[1]);
     glBindBuffer(GL_ARRAY_BUFFER, vbos[1]);
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof (float), (GLvoid *) 0);
+    glVertexAttribPointer(
+        0,
+        2,
+        GL_FLOAT,
+        GL_FALSE,
+        2 * sizeof(float),
+        (GLvoid *) 0
+    );
     glEnableVertexAttribArray(0);
 
     glUseProgram(shader_program);
@@ -206,7 +229,10 @@ int main(int const argc, char const * const * const argv) {
                 continue;
             }
 
-            cars[i].rot += (float) (glfwGetKey(window, GLFW_KEY_A) - glfwGetKey(window, GLFW_KEY_D)) * (float) dt * 5.0f;
+            cars[i].rot += (float
+                           ) (glfwGetKey(window, GLFW_KEY_A)
+                              - glfwGetKey(window, GLFW_KEY_D))
+                * (float) dt * 5.0f;
             if (glfwGetKey(window, GLFW_KEY_W)) {
                 cars[i].pos[0] += cosf(cars[i].rot) * (float) dt * 0.35f;
                 cars[i].pos[1] += sinf(cars[i].rot) * (float) dt * 0.35f;
@@ -231,7 +257,6 @@ int main(int const argc, char const * const * const argv) {
             for (size_t j = 0; j < CAR_NUM_VERTICES; j++) {
                 vert_cars[i * CAR_NUM_VERTICES + j] = cars[i].vertices[j];
             }
-
         }
 
         if (num_dead_cars == NUM_CARS) {
@@ -246,8 +271,13 @@ int main(int const argc, char const * const * const argv) {
         glDrawArrays(GL_LINES, 0, (GLsizei) (size_vertices / 2));
 
         glBindVertexArray(vaos[1]);
-        glBufferData(GL_ARRAY_BUFFER, sizeof vert_cars, vert_cars, GL_DYNAMIC_DRAW);
-        glDrawArrays(GL_LINES, 0, sizeof vert_cars / sizeof (float) / 2);
+        glBufferData(
+            GL_ARRAY_BUFFER,
+            sizeof vert_cars,
+            vert_cars,
+            GL_DYNAMIC_DRAW
+        );
+        glDrawArrays(GL_LINES, 0, sizeof vert_cars / sizeof(float) / 2);
 
         glfwSwapBuffers(window);
 
@@ -258,10 +288,8 @@ int main(int const argc, char const * const * const argv) {
             }
         }
 
-        if (
-            glfwGetKey(window, GLFW_KEY_Q) ||
-            glfwGetKey(window, GLFW_KEY_ESCAPE)
-        ) {
+        if (glfwGetKey(window, GLFW_KEY_Q)
+            || glfwGetKey(window, GLFW_KEY_ESCAPE)) {
             glfwSetWindowShouldClose(window, GLFW_TRUE);
         }
 

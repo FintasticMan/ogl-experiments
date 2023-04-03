@@ -24,7 +24,8 @@ struct car {
     float ray_ends[CAR_NUM_RAYS * 2];
 };
 
-static inline void car_init(struct car * const car, float const * const car_start) {
+static inline void
+    car_init(struct car *const car, float const *const car_start) {
     car->pos[0] = car_start[0];
     car->pos[1] = car_start[1];
     car->rot = car_start[2];
@@ -39,11 +40,13 @@ static inline void car_init(struct car * const car, float const * const car_star
     car->alive = 1;
     car->fov = PI;
     for (size_t i = 0; i < CAR_NUM_RAYS; i++) {
-        car->ray_angles[i] = CAR_NUM_RAYS == 1 ? 0.0f : -car->fov * 0.5f + (float) i * car->fov / (float) (CAR_NUM_RAYS - 1);
+        car->ray_angles[i] = CAR_NUM_RAYS == 1 ? 0.0f
+                                               : -car->fov * 0.5f
+                + (float) i * car->fov / (float) (CAR_NUM_RAYS - 1);
     }
 }
 
-static inline void car_update_vertices(struct car * const car) {
+static inline void car_update_vertices(struct car *const car) {
     car->vertices[0] = car->pos[0] + car->hyp * cosf(car->angles[0] + car->rot);
     car->vertices[1] = car->pos[1] + car->hyp * sinf(car->angles[0] + car->rot);
     car->vertices[2] = car->pos[0] + car->hyp * cosf(car->angles[1] + car->rot);
@@ -54,8 +57,10 @@ static inline void car_update_vertices(struct car * const car) {
     car->vertices[7] = car->pos[1] + car->hyp * sinf(car->angles[2] + car->rot);
     car->vertices[8] = car->vertices[6];
     car->vertices[9] = car->vertices[7];
-    car->vertices[10] = car->pos[0] + car->hyp * cosf(car->angles[3] + car->rot);
-    car->vertices[11] = car->pos[1] + car->hyp * sinf(car->angles[3] + car->rot);
+    car->vertices[10]
+        = car->pos[0] + car->hyp * cosf(car->angles[3] + car->rot);
+    car->vertices[11]
+        = car->pos[1] + car->hyp * sinf(car->angles[3] + car->rot);
     car->vertices[12] = car->vertices[10];
     car->vertices[13] = car->vertices[11];
     car->vertices[14] = car->vertices[0];
@@ -67,12 +72,13 @@ static inline void car_update_vertices(struct car * const car) {
     }
 }
 
-// see https://en.wikipedia.org/wiki/Line%E2%80%93line_intersection#Given_two_points_on_each_line
+// see
+// https://en.wikipedia.org/wiki/Line%E2%80%93line_intersection#Given_two_points_on_each_line
 static inline void l_l_intersect(
-    float const * const l1,
-    float const * const l2,
-    float * const t,
-    float * const u
+    float const *const l1,
+    float const *const l2,
+    float *const t,
+    float *const u
 ) {
     float const x1 = l1[0];
     float const y1 = l1[1];
@@ -90,8 +96,8 @@ static inline void l_l_intersect(
 }
 
 static inline void car_update_alive(
-    struct car * const car,
-    float const * const track,
+    struct car *const car,
+    float const *const track,
     size_t const track_size
 ) {
     for (size_t i = 0; i < track_size; i += 4) {
@@ -111,41 +117,56 @@ static inline void car_update_alive(
 }
 
 static inline void car_update_checkpoints(
-    struct car * const car,
-    float const * const checkpoints,
+    struct car *const car,
+    float const *const checkpoints,
     size_t const checkpoints_size
 ) {
     float t;
     float u;
-    l_l_intersect(checkpoints + (car->checkpoints * 4) % checkpoints_size, car->vertices + 4, &t, &u);
+    l_l_intersect(
+        checkpoints + (car->checkpoints * 4) % checkpoints_size,
+        car->vertices + 4,
+        &t,
+        &u
+    );
     if (t >= 0.0f && t <= 1.0f && u >= 0.0f && u <= 1.0f) {
         car->checkpoints++;
     }
-    l_l_intersect(checkpoints + (car->checkpoints * 4) % checkpoints_size, car->vertices + 12, &t, &u);
+    l_l_intersect(
+        checkpoints + (car->checkpoints * 4) % checkpoints_size,
+        car->vertices + 12,
+        &t,
+        &u
+    );
     if (t >= 0.0f && t <= 1.0f && u >= 0.0f && u <= 1.0f) {
         car->checkpoints++;
     }
 }
 
 static inline void car_update_rays(
-    struct car * const car,
-    float const * const track,
+    struct car *const car,
+    float const *const track,
     size_t const track_size
 ) {
     for (size_t i = 0; i < CAR_NUM_RAYS; i++) {
-        car->vertices[16 + i * 4 + 2] = car->pos[0] + cosf(car->ray_angles[i] + car->rot);
-        car->vertices[16 + i * 4 + 3] = car->pos[1] + sinf(car->ray_angles[i] + car->rot);
+        car->vertices[16 + i * 4 + 2]
+            = car->pos[0] + cosf(car->ray_angles[i] + car->rot);
+        car->vertices[16 + i * 4 + 3]
+            = car->pos[1] + sinf(car->ray_angles[i] + car->rot);
         float min_u = 0.0f;
         for (size_t j = 0; j < track_size / 4; j++) {
             float t;
             float u;
             l_l_intersect(track + j * 4, car->vertices + 16 + i * 4, &t, &u);
-            if (t >= 0.0f && t <= 1.0f && u > 0.0f && (u < min_u || min_u == 0.0f)) {
+            if (t >= 0.0f && t <= 1.0f && u > 0.0f
+                && (u < min_u || min_u == 0.0f)) {
                 min_u = u;
             }
         }
-        car->vertices[16 + i * 4 + 2] = car->pos[0] + min_u * (car->vertices[16 + i * 4 + 2] - car->pos[0]);
-        car->vertices[16 + i * 4 + 3] = car->pos[1] + min_u * (car->vertices[16 + i * 4 + 3] - car->pos[1]);
+        car->vertices[16 + i * 4 + 2] = car->pos[0]
+            + min_u * (car->vertices[16 + i * 4 + 2] - car->pos[0]);
+        car->vertices[16 + i * 4 + 3] = car->pos[1]
+            + min_u * (car->vertices[16 + i * 4 + 3] - car->pos[1]);
     }
 }
 

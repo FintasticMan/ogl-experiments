@@ -6,10 +6,14 @@
 #include "exitcodes.h"
 #include "logging.h"
 
-void create_shader(char const * const path, GLenum const type, GLuint * const dest) {
+void create_shader(
+    char const *const path,
+    GLenum const type,
+    GLuint *const dest
+) {
     *dest = glCreateShader(type);
 
-    FILE * const fpt = fopen(path, "rb");
+    FILE *const fpt = fopen(path, "rb");
     if (!fpt) {
         exit(EFOPENFAIL);
     }
@@ -18,7 +22,7 @@ void create_shader(char const * const path, GLenum const type, GLuint * const de
 
     size_t const file_size = ftell(fpt);
 
-    GLchar * const source = malloc(file_size + sizeof (GLchar));
+    GLchar *const source = malloc(file_size + sizeof(GLchar));
     if (!source) {
         exit(EALLOCFAIL);
     }
@@ -29,7 +33,7 @@ void create_shader(char const * const path, GLenum const type, GLuint * const de
 
     fclose(fpt);
 
-    glShaderSource(*dest, 1, (GLchar const * const *) &source, NULL);
+    glShaderSource(*dest, 1, (GLchar const *const *) &source, NULL);
 
     glCompileShader(*dest);
 
@@ -50,7 +54,10 @@ void create_shader(char const * const path, GLenum const type, GLuint * const de
     free(source);
 }
 
-void create_program_compute(char const * const compute_shader_path, GLuint * const dest) {
+void create_program_compute(
+    char const *const compute_shader_path,
+    GLuint *const dest
+) {
     *dest = glCreateProgram();
 
     GLuint compute_shader = 0;
@@ -71,12 +78,12 @@ void create_program_compute(char const * const compute_shader_path, GLuint * con
 }
 
 void create_program(
-    char const * const vertex_shader_path,
-    char const * const tessellation_control_shader_path,
-    char const * const tessellation_evaluation_shader_path,
-    char const * const geometry_shader_path,
-    char const * const fragment_shader_path,
-    GLuint * const dest
+    char const *const vertex_shader_path,
+    char const *const tessellation_control_shader_path,
+    char const *const tessellation_evaluation_shader_path,
+    char const *const geometry_shader_path,
+    char const *const fragment_shader_path,
+    GLuint *const dest
 ) {
     *dest = glCreateProgram();
 

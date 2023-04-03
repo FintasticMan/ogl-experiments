@@ -6,14 +6,14 @@
 #include <time.h>
 
 static uint8_t level;
-static FILE * fpt;
+static FILE *fpt;
 
-void tlog_init(uint8_t const loglevel, FILE * const dest) {
+void tlog_init(uint8_t const loglevel, FILE *const dest) {
     level = loglevel;
     fpt = dest ? dest : stderr;
 }
 
-void tlog(uint8_t const loglevel, char const * const restrict fmt, ...) {
+void tlog(uint8_t const loglevel, char const *const restrict fmt, ...) {
     if (loglevel < level) {
         return;
     }
