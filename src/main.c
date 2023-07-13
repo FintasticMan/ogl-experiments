@@ -58,7 +58,7 @@ static void framebuffer_size_callback(
 
 #pragma GCC diagnostic pop
 
-int main(int const argc, char const *const *const argv) {
+int main(int const argc, char *const argv[]) {
     tlog_init(argc < 2 ? 0 : (uint8_t) strtoul(argv[1], NULL, 0), stderr);
 
     glfwSetErrorCallback(error_callback);
